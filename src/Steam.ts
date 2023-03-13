@@ -186,7 +186,6 @@ class Steam extends Base {
                 }
             });
             if (response.success === 1) {
-                console.log(response);
                 return;
             } else if (response.success === 25) {
                 throw new Error(`Maximum order amount exceeded`);
