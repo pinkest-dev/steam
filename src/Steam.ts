@@ -164,6 +164,32 @@ class Steam extends Base {
         }
     }
 
+    /**(метод аккаунта) получения баланса аккаунта (в установленной валюте)*/
+    async getBalance() {
+        try {
+            const response = await this.doRequest("https://store.steampowered.com/account/", {}, { isJsonResult: false });
+            if (response.includes('id="header_wallet_balance"'))
+                var balanceInfo: string = response.split('<a class="global_action_link" id="header_wallet_balance" href="https://store.steampowered.com/account/store_transactions/">')[1].split("</a>")[0];
+            else
+                if (response.includes('<div class="accountData price">'))
+                    var balanceInfo: string = response.split('<div class="accountData price">')[1].split("</div>")[0];
+                else
+                    throw new Error("Не удалось получить баланс");
+            var balance: number;
+            var rawBalance = /\d+,+\d+|\d+\.+\d+|\d+/.exec(balanceInfo);
+            if (rawBalance)
+                balance = parseFloat(rawBalance[0].replace(",", "."));
+            else
+                throw new Error("Не получилось отформатировать");
+
+            const currency = balanceInfo.replace(/\d+,+\d+|\d+\.+\d+|\d+/, "");
+
+            return { currency, balance }
+        } catch (err) {
+            throw new Error(`Can't get Steam balance: ${err}`);
+        }
+    }
+
     /**(работа с тп) Поставить запрос на покупку предмета */
     async createBuyOrder(params: CreateBuyOrderParams): Promise<void> {
         try {
@@ -253,7 +279,7 @@ class Steam extends Base {
                 {},
                 { useSavedCookies: options?.withLogin === true, customProxy: options?.proxy }
             );
-            if (response.success === 1){
+            if (response.success === 1) {
                 return {
                     lowest_sell_order: Number(response.lowest_sell_order) / 100,
                     highest_buy_order: Number(response.highest_buy_order) / 100

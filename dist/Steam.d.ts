@@ -13,6 +13,11 @@ declare class Steam extends Base {
     generateTwoFactorCode(shared_secret: string): string;
     /**(основной метод) Пройти авторизацию в Steam (получить доступ к аккаунту) */
     authorization(params: AuthentificationParams): Promise<string[]>;
+    /**(метод аккаунта) получения баланса аккаунта (в установленной валюте)*/
+    getBalance(): Promise<{
+        currency: string;
+        balance: number;
+    }>;
     /**(работа с тп) Поставить запрос на покупку предмета */
     createBuyOrder(params: CreateBuyOrderParams): Promise<void>;
     /**(работа с тп) Возвращает все точки на графике определенного предмета торговой площадки, отображаемые в Steam [date, price, quantity][] В ДОЛЛАРАХ США!
