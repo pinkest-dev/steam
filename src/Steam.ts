@@ -196,11 +196,12 @@ class Steam extends Base {
             throw new Error(`Can't create buy order: ${err}`);
         }
     }
-    /**(работа с тп) Возвращает все точки на графике, отображаемые в Steam (date, price, quantity) В ДОЛЛАРАХ США!
+
+    /**(работа с тп) Возвращает все точки на графике определенного предмета торговой площадки, отображаемые в Steam [date, price, quantity][] В ДОЛЛАРАХ США!
      * @param market_hash_name - полное название предмета
      * @param options - настройки запроса
     */
-    async getLastSales(market_hash_name: string, options?: {
+    async getSkinSales(market_hash_name: string, options?: {
         /**прокси в формате http://username:password@ip:port, через который пройдет запрос (он будет приоритетнее, чем тот, который передан в конструктор класса) */
         proxy?: string,
         /**Использовать ли куки аккаунта в запросе */
@@ -226,6 +227,42 @@ class Steam extends Base {
             return results;
         } catch (err) {
             throw new Error(`Can't get last sales: ${err}`);
+        }
+    }
+
+    /**(НЕ РАБОТАЕТ) Подгрузка nameid со стима. Довольно ресурсоёмкая операция, поэтому следует минимизировать её использование 
+     * @param market_hash_name - полное название предмета
+    */
+    async parseNameid(market_hash_name: string) {
+        throw new Error(`This method is not avalible`);
+    }
+
+    /**(работа с тп) Возвращает максимальный и минимальный рыночный зарос на определенный предмет торговой площадки
+     * @param market_hash_name - полное название предмета
+     * @param options - настройки запроса
+    */
+    async getSkinOrders(nameid: number, options?: {
+        /**прокси в формате http://username:password@ip:port, через который пройдет запрос (он будет приоритетнее, чем тот, который передан в конструктор класса) */
+        proxy?: string,
+        /**Использовать ли куки аккаунта в запросе */
+        withLogin?: boolean
+    }) {
+        try {
+            const response = await this.doRequest(
+                `https://steamcommunity.com/market/itemordershistogram?country=RU&language=russian&currency=5&item_nameid=${nameid}&two_factor=0`,
+                {},
+                { useSavedCookies: options?.withLogin === true, customProxy: options?.proxy }
+            );
+            if (response.success === 1){
+                return {
+                    lowest_sell_order: Number(response.lowest_sell_order) / 100,
+                    highest_buy_order: Number(response.highest_buy_order) / 100
+                }
+            } else {
+                throw new Error(response);
+            }
+        } catch (err) {
+            throw new Error(`Can't get skin orders: ${err}`);
         }
     }
 }
