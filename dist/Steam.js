@@ -197,11 +197,11 @@ class Steam extends Base {
             throw new Error(`Can't create buy order: ${err}`);
         }
     }
-    /**(работа с тп) Возвращает все точки на графике, отображаемые в Steam (date, price, quantity) В ДОЛЛАРАХ США!
+    /**(работа с тп) Возвращает все точки на графике определенного предмета торговой площадки, отображаемые в Steam [date, price, quantity][] В ДОЛЛАРАХ США!
      * @param market_hash_name - полное название предмета
      * @param options - настройки запроса
     */
-    async getLastSales(market_hash_name, options) {
+    async getSkinSales(market_hash_name, options) {
         try {
             const response = await this.doRequest(`https://steamcommunity.com/market/listings/730/${encodeURIComponent(market_hash_name)}`, {}, { isJsonResult: false, useSavedCookies: options?.withLogin === true, customProxy: options?.proxy });
             const pos1 = response.indexOf("var line1=", 0) + "var line1=".length;
@@ -219,6 +219,33 @@ class Steam extends Base {
         }
         catch (err) {
             throw new Error(`Can't get last sales: ${err}`);
+        }
+    }
+    /**(НЕ РАБОТАЕТ) Подгрузка nameid со стима. Довольно ресурсоёмкая операция, поэтому следует минимизировать её использование
+     * @param market_hash_name - полное название предмета
+    */
+    async parseNameid(market_hash_name) {
+        throw new Error(`This method is not avalible`);
+    }
+    /**(работа с тп) Возвращает максимальный и минимальный рыночный зарос на определенный предмет торговой площадки
+     * @param market_hash_name - полное название предмета
+     * @param options - настройки запроса
+    */
+    async getSkinOrders(nameid, options) {
+        try {
+            const response = await this.doRequest(`https://steamcommunity.com/market/itemordershistogram?country=RU&language=russian&currency=5&item_nameid=${nameid}&two_factor=0`, {}, { useSavedCookies: options?.withLogin === true, customProxy: options?.proxy });
+            if (response.success === 1) {
+                return {
+                    lowest_sell_order: Number(response.lowest_sell_order) / 100,
+                    highest_buy_order: Number(response.highest_buy_order) / 100
+                };
+            }
+            else {
+                throw new Error(response);
+            }
+        }
+        catch (err) {
+            throw new Error(`Can't get skin orders: ${err}`);
         }
     }
 }
