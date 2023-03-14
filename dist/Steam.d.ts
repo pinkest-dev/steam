@@ -1,10 +1,14 @@
 import Base from "./Base.js";
-import { AuthentificationParams, ConstructorOptions, CreateBuyOrderParams } from "./interfaces.js";
+import { AuthentificationParams, ConstructorOptions, Cookie, CreateBuyOrderParams } from "./interfaces.js";
 declare class Steam extends Base {
     constructor(options?: ConstructorOptions);
     private getClientJsToken;
     /**Получить статус авторизации. Проверить авторизованы ли мы сейчас в Steam? Действительны ли наши куки*/
     isAuthorized(): Promise<boolean>;
+    /**Получить статус авторизации у произвольных куков*/
+    static CheckCookiesSession(accountName: string, cookies: {
+        [cookieName: string]: Cookie;
+    }): Promise<boolean>;
     private getRsaKey;
     private doLogin;
     private generateSessionID;

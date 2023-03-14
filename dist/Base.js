@@ -18,7 +18,7 @@ class Base {
     clearCookies() {
         this.cookies = {};
     }
-    packCookiesToString(cookies) {
+    static PackCookiesToString(cookies) {
         let result = ``;
         for (const cookieName in cookies) {
             const cookie = cookies[cookieName];
@@ -26,7 +26,7 @@ class Base {
         }
         return result;
     }
-    parseCookiesString(cookieStr) {
+    static ParseCookiesString(cookieStr) {
         const splittedCookies = cookieStr.split('; ');
         const expiresCookie = splittedCookies.filter(c => c.includes('Expires'))[0];
         const cookie = {
@@ -38,19 +38,19 @@ class Base {
     }
     setDirtyCookies(cookies) {
         for (const cookie of cookies) {
-            const parsedCookie = this.parseCookiesString(cookie);
+            const parsedCookie = Base.ParseCookiesString(cookie);
             this.cookies[parsedCookie.name] = parsedCookie;
         }
     }
     async doRequest(url, requestOptions, options) {
         try {
             const headers = requestOptions && requestOptions.headers ? requestOptions.headers : {};
-            const cookies = requestOptions && requestOptions.headers && requestOptions.headers.cookie ? this.parseCookiesString(requestOptions.headers.cookie) : {};
+            const cookies = requestOptions && requestOptions.headers && requestOptions.headers.cookie ? Base.ParseCookiesString(requestOptions.headers.cookie) : {};
             delete (requestOptions?.headers);
             const allCookies = { ...this.cookies, ...cookies };
             const actualRequestOptions = {
                 headers: {
-                    cookie: options?.useSavedCookies === false ? `` : this.packCookiesToString(allCookies),
+                    cookie: options?.useSavedCookies === false ? `` : Base.PackCookiesToString(allCookies),
                     'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36`,
                     ...headers
                 },
@@ -67,6 +67,7 @@ class Base {
                     https: this.getProxyAgent(this.proxy),
                     http: this.getProxyAgent(this.proxy)
                 };
+            console.log(actualRequestOptions);
             const response = await got(url, actualRequestOptions);
             const newCookies = response.headers["set-cookie"];
             if (newCookies)

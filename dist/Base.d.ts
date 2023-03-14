@@ -12,10 +12,10 @@ declare class Base {
         [cookieName: string]: Cookie;
     };
     clearCookies(): void;
-    protected packCookiesToString(cookies: {
+    protected static PackCookiesToString(cookies: {
         [cookieName: string]: Cookie;
     }): string;
-    protected parseCookiesString(cookieStr: string): Cookie;
+    protected static ParseCookiesString(cookieStr: string): Cookie;
     protected setDirtyCookies(cookies: string[]): void;
     protected doRequest(url: string, requestOptions?: OptionsOfTextResponseBody, options?: {
         /**Ответ сервера в формате json? */

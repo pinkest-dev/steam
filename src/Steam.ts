@@ -2,7 +2,8 @@ import Base from "./Base.js";
 import crypto from "crypto";
 //@ts-ignore
 import { hex2b64, Key } from "node-bignumber";
-import { AuthentificationParams, ClientJsToken, ConstructorOptions, CreateBuyOrderParams, DoLoginParams, RsaKey } from "./interfaces.js";
+import { AuthentificationParams, ClientJsToken, ConstructorOptions, Cookie, CreateBuyOrderParams, DoLoginParams, RsaKey } from "./interfaces.js";
+import got from "got";
 
 class Steam extends Base {
     constructor(options?: ConstructorOptions) {
@@ -21,6 +22,31 @@ class Steam extends Base {
     /**Получить статус авторизации. Проверить авторизованы ли мы сейчас в Steam? Действительны ли наши куки*/
     async isAuthorized() {
         return (await this.getClientJsToken()).logged_in;
+    }
+    /**Получить статус авторизации у произвольных куков*/
+    static async CheckCookiesSession(accountName: string, cookies: { [cookieName: string]: Cookie }) {
+        try {
+            const response: RsaKey = await got(`https://steamcommunity.com/login/getrsakey/`, {
+                method: 'POST',
+                headers: {
+                    Referer: `https://steamcommunity.com/login/home/?goto=`,
+                    cookie: Base.PackCookiesToString(cookies)
+                },
+                form: {
+                    username: accountName,
+                    donotcache: Date.now()
+                }
+            }).json();
+            if (response.success) {
+                const key = new Key();
+                key.setPublic(response.publickey_mod, response.publickey_exp);
+                return true;
+            } else {
+                return false;
+            }
+        } catch (err) {
+            throw new Error(`Can't check cookies session: ${err}`);
+        }
     }
 
     private async getRsaKey(login: string) {
@@ -236,7 +262,9 @@ class Steam extends Base {
         try {
             const response = await this.doRequest(
                 `https://steamcommunity.com/market/listings/730/${encodeURIComponent(market_hash_name)}`,
-                {},
+                {
+
+                },
                 { isJsonResult: false, useSavedCookies: options?.withLogin === true, customProxy: options?.proxy }
             );
             const pos1 = response.indexOf("var line1=", 0) + "var line1=".length;
