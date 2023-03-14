@@ -81,7 +81,6 @@ class Base {
           https: this.getProxyAgent(this.proxy),
           http: this.getProxyAgent(this.proxy)
         }
-      console.log(actualRequestOptions);
       const response = await got(url, actualRequestOptions);
       const newCookies = response.headers["set-cookie"];
       if (newCookies) this.setDirtyCookies(newCookies);
