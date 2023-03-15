@@ -53,19 +53,22 @@ class Base {
     setDirtyCookies(domen, cookies) {
         for (const cookie of cookies) {
             const parsedCookie = Base.ParseCookiesString(cookie);
+            if (!this.cookies[domen])
+                this.cookies[domen] = {};
             this.cookies[domen][parsedCookie.name] = parsedCookie;
         }
     }
     /**Универсальная функция для запроса */
     async doRequest(url, requestOptions, options) {
         try {
+            const domen = url.replaceAll('http://', '').replaceAll('https://', '').split('/')[0];
             const headers = requestOptions && requestOptions.headers ? requestOptions.headers : {};
             const cookies = requestOptions && requestOptions.headers && requestOptions.headers.cookie ? Base.ParseCookiesString(requestOptions.headers.cookie) : {};
             delete (requestOptions?.headers);
-            const allCookies = { ...this.cookies, ...cookies };
+            const allCookies = { ...this.cookies[domen], ...cookies };
             const actualRequestOptions = {
                 headers: {
-                    cookie: options?.useSavedCookies === false ? `` : Base.PackCookiesToString(allCookies),
+                    cookie: options?.useSavedCookies === false ? undefined : Base.PackCookiesToString(allCookies),
                     'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36`,
                     ...headers
                 },
@@ -84,19 +87,18 @@ class Base {
                 };
             const response = await got(url, actualRequestOptions);
             const newCookies = response.headers["set-cookie"];
-            const domen = url.replaceAll('http://', '').replaceAll('https://', '').split('/')[0];
             if (newCookies)
                 this.setDirtyCookies(domen, newCookies);
-            if (options?.isJsonResult || typeof (options?.isJsonResult) === 'undefined') {
+            if (options?.isJsonResult === true || typeof (options?.isJsonResult) === 'undefined') {
                 try {
-                    return JSON.parse(response.body);
+                    return { headers: response.headers, body: JSON.parse(response.body) };
                 }
                 catch (err) {
                     throw new Error(`Cant parse response. It's not in json format`);
                 }
             }
             else {
-                return response.body;
+                return { headers: response.headers, body: response.body };
             }
         }
         catch (err) {

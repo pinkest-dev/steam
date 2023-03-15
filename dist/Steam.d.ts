@@ -15,13 +15,16 @@ declare class Steam extends Base {
     private bufferizeSecret;
     /**(основные методы) Сгенерировать 5-значный вход для входа в аккаунт. shared_secret - код из maFile*/
     generateTwoFactorCode(shared_secret: string): string;
-    /**openidMode - можно достать со страницы входа в Steam аккаунт
-     * https://steamcommunity.com/openid/login?openid.mode= - нужно скопировать строку, которая идёт далее
-     * На эту страницу можно попасть, нажав на нужном сайте кнопку ВОЙТИ ЧЕРЕЗ STEAM
+    /**Получение параметров для авторизации на каком-то сервисе через Steam
+     * @param link - ссылка на авторизацию в Steam, на которую пересылает сервис
     */
-    private getNonce;
-    /**Авторизоваться на каком-либо сайте через Steam. Отдаётся ссылка, при переходе по которой устанавливаются куки авторизации*/
-    serviceAuthorization(openidMode: string): Promise<void>;
+    private getLoginFormData;
+    private openidLogin;
+    /**Авторизоваться на каком-либо сайте через Steam. Отдаётся ссылка, при переходе по которой устанавливаются куки авторизации
+     * для разных сайтов нужны разные параметры для запроса, чтобы из этой ссылки получить хорошие куки, где-то надо просто установить Referer,
+     * а где-то придется знатно потанцевать с бубном
+    */
+    getServiceAuthirizationLink(link: string): Promise<string | undefined>;
     /**(основной метод) Пройти авторизацию в Steam (получить доступ к аккаунту) */
     authorization(params: AuthentificationParams): Promise<string[]>;
     /**(метод аккаунта) получения баланса аккаунта (в установленной валюте)*/

@@ -3,17 +3,18 @@ import crypto from "crypto";
 //@ts-ignore
 import { hex2b64, Key } from "node-bignumber";
 import got from "got";
+import PopularDomens from "./Enums/PopularDomens.js";
 class Steam extends Base {
     constructor(options) {
         super(options);
     }
     async getClientJsToken() {
-        const clientJsToken = await this.doRequest(`https://steamcommunity.com/chat/clientjstoken`, {
+        const { body } = await this.doRequest(`https://steamcommunity.com/chat/clientjstoken`, {
             headers: {
                 Referer: `https://steamcommunity.com/market/`
             }
         });
-        return clientJsToken;
+        return body;
     }
     /**Получить статус авторизации. Проверить авторизованы ли мы сейчас в Steam? Действительны ли наши куки*/
     async isAuthorized() {
@@ -48,7 +49,7 @@ class Steam extends Base {
     }
     async getRsaKey(login) {
         try {
-            const response = await this.doRequest(`https://steamcommunity.com/login/getrsakey/`, {
+            const { body } = await this.doRequest(`https://steamcommunity.com/login/getrsakey/`, {
                 method: 'POST',
                 headers: {
                     Referer: `https://steamcommunity.com/login/home/?goto=`
@@ -58,13 +59,13 @@ class Steam extends Base {
                     donotcache: Date.now()
                 }
             });
-            if (response.success) {
+            if (body.success) {
                 const key = new Key();
-                key.setPublic(response.publickey_mod, response.publickey_exp);
-                return { key, timestamp: response.timestamp };
+                key.setPublic(body.publickey_mod, body.publickey_exp);
+                return { key, timestamp: body.timestamp };
             }
             else {
-                throw new Error(`Can't get rsa key: ${JSON.stringify(response)}`);
+                throw new Error(`Can't get rsa key: ${JSON.stringify(body)}`);
             }
         }
         catch (err) {
@@ -76,7 +77,7 @@ class Steam extends Base {
             const { key, timestamp } = await this.getRsaKey(options.accountName);
             const encryptedPassword = hex2b64(key.encrypt(options.password));
             const twoFactorCode = options.shared_secret ? this.generateTwoFactorCode(options.shared_secret) : options.twoFactorCode;
-            const response = await this.doRequest(`https://steamcommunity.com/login/dologin/`, {
+            const { body } = await this.doRequest(`https://steamcommunity.com/login/dologin/`, {
                 method: 'POST',
                 headers: {
                     Referer: `https://steamcommunity.com/login/home/?goto=`
@@ -97,21 +98,21 @@ class Steam extends Base {
                     tokentype: -1,
                 }
             });
-            if (!response.success && response.emailauth_needed) {
+            if (!body.success && body.emailauth_needed) {
                 throw new Error(`Steam Guard`);
             }
-            else if (!response.success && response.requires_twofactor) {
+            else if (!body.success && body.requires_twofactor) {
                 throw new Error("SteamGuardMobile");
             }
-            else if (!response.success && response.captcha_needed && response.message.match(/Please verify your humanity/)) {
+            else if (!body.success && body.captcha_needed && body.message.match(/Please verify your humanity/)) {
                 throw new Error("Captcha");
             }
-            else if (!response.success) {
+            else if (!body.success) {
                 throw new Error("Unknown error");
             }
             else {
                 const sid = this.generateSessionID();
-                const transfer_parameters = response.transfer_parameters;
+                const transfer_parameters = body.transfer_parameters;
                 const newCookies = [
                     `sessionid=${sid}`,
                     `steamLoginSecure=${transfer_parameters.token_secure}`,
@@ -165,24 +166,54 @@ class Steam extends Base {
             throw new Error(`Can't generate auth code: ${err}`);
         }
     }
-    /**openidMode - можно достать со страницы входа в Steam аккаунт
-     * https://steamcommunity.com/openid/login?openid.mode= - нужно скопировать строку, которая идёт далее
-     * На эту страницу можно попасть, нажав на нужном сайте кнопку ВОЙТИ ЧЕРЕЗ STEAM
+    /**Получение параметров для авторизации на каком-то сервисе через Steam
+     * @param link - ссылка на авторизацию в Steam, на которую пересылает сервис
     */
-    async getNonce(openidMode) {
+    async getLoginFormData(link) {
         try {
-            const response = await this.doRequest(`https://steamcommunity.com/openid/login?openid.mode=${openidMode}`, {}, { isJsonResult: false });
-            const nonce = response.match(/<input type="hidden" name="nonce" value="{0-9a-z}/g).replaceAll('<input type="hidden" name="nonce" value="', '');
-            return nonce;
+            const { body } = await this.doRequest(link, {}, { isJsonResult: false });
+            const rawNonce = body.match(/<input type="hidden" name="nonce" value="[0-9a-z]*/g);
+            const rawOpenidparams = body.match(/<input type="hidden" name="openidparams" value="[0-9a-zA-Z]*/);
+            if (!rawNonce)
+                throw new Error('Nonce is not found on login page');
+            if (!rawOpenidparams)
+                throw new Error('Openid is not found on login page');
+            const nonce = rawNonce[0].replaceAll('<input type="hidden" name="nonce" value="', '');
+            const openid = rawOpenidparams[0].replaceAll('<input type="hidden" name="openidparams" value="', '');
+            return { nonce, openid };
         }
         catch (err) {
-            throw new Error(String(err));
+            throw err;
         }
     }
-    /**Авторизоваться на каком-либо сайте через Steam. Отдаётся ссылка, при переходе по которой устанавливаются куки авторизации*/
-    async serviceAuthorization(openidMode) {
+    async openidLogin(link, nonce, openid) {
+        const { headers } = await this.doRequest(`https://steamcommunity.com/openid/login`, {
+            method: 'POST',
+            headers: {
+                Referer: link,
+                Origin: `https://steamcommunity.com`
+            },
+            form: {
+                action: "steam_openid_login",
+                nonce: nonce,
+                "openid.mode": "checkid_setup",
+                openidparams: openid
+            },
+            followRedirect: false
+        }, {
+            isJsonResult: false
+        });
+        return headers.location;
+    }
+    /**Авторизоваться на каком-либо сайте через Steam. Отдаётся ссылка, при переходе по которой устанавливаются куки авторизации
+     * для разных сайтов нужны разные параметры для запроса, чтобы из этой ссылки получить хорошие куки, где-то надо просто установить Referer,
+     * а где-то придется знатно потанцевать с бубном
+    */
+    async getServiceAuthirizationLink(link) {
         try {
-            const nonce = await this.getNonce(openidMode);
+            const params = await this.getLoginFormData(link);
+            const location = await this.openidLogin(link, params.nonce, params.openid);
+            return location;
         }
         catch (err) {
             throw new Error(`Can't authorize in service: ${err}`);
@@ -215,11 +246,11 @@ class Steam extends Base {
     /**(метод аккаунта) получения баланса аккаунта (в установленной валюте)*/
     async getBalance() {
         try {
-            const response = await this.doRequest("https://store.steampowered.com/account/", {}, { isJsonResult: false });
-            if (response.includes('id="header_wallet_balance"'))
-                var balanceInfo = response.split('<a class="global_action_link" id="header_wallet_balance" href="https://store.steampowered.com/account/store_transactions/">')[1].split("</a>")[0];
-            else if (response.includes('<div class="accountData price">'))
-                var balanceInfo = response.split('<div class="accountData price">')[1].split("</div>")[0];
+            const { body } = await this.doRequest("https://store.steampowered.com/account/", {}, { isJsonResult: false });
+            if (body.includes('id="header_wallet_balance"'))
+                var balanceInfo = body.split('<a class="global_action_link" id="header_wallet_balance" href="https://store.steampowered.com/account/store_transactions/">')[1].split("</a>")[0];
+            else if (body.includes('<div class="accountData price">'))
+                var balanceInfo = body.split('<div class="accountData price">')[1].split("</div>")[0];
             else
                 throw new Error("Не удалось получить баланс");
             var balance;
@@ -241,7 +272,7 @@ class Steam extends Base {
             const cookies = this.getCookies(PopularDomens["steamcommunity.com"]);
             if (!cookies.sessionid)
                 throw new Error(`Not logged in`);
-            const response = await this.doRequest('https://steamcommunity.com/market/createbuyorder/', {
+            const { body } = await this.doRequest('https://steamcommunity.com/market/createbuyorder/', {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
@@ -257,13 +288,13 @@ class Steam extends Base {
                     save_my_address: 0
                 }
             });
-            if (response.success === 1) {
+            if (body.success === 1) {
                 return;
             }
-            else if (response.success === 25) {
+            else if (body.success === 25) {
                 throw new Error(`Maximum order amount exceeded`);
             }
-            else if (response.success === 29) {
+            else if (body.success === 29) {
                 throw new Error(`Order already exists`);
             }
         }
@@ -277,10 +308,10 @@ class Steam extends Base {
     */
     async getSkinSales(market_hash_name, options) {
         try {
-            const response = await this.doRequest(`https://steamcommunity.com/market/listings/730/${encodeURIComponent(market_hash_name)}`, {}, { isJsonResult: false, useSavedCookies: options?.withLogin === true, customProxy: options?.proxy });
-            const pos1 = response.indexOf("var line1=", 0) + "var line1=".length;
-            const pos2 = response.indexOf(';', pos1);
-            const arr = JSON.parse(response.slice(pos1, pos2));
+            const { body } = await this.doRequest(`https://steamcommunity.com/market/listings/730/${encodeURIComponent(market_hash_name)}`, {}, { isJsonResult: false, useSavedCookies: options?.withLogin === true, customProxy: options?.proxy });
+            const pos1 = body.indexOf("var line1=", 0) + "var line1=".length;
+            const pos2 = body.indexOf(';', pos1);
+            const arr = JSON.parse(body.slice(pos1, pos2));
             const results = arr.map(el => {
                 const newEl = [
                     new Date(el[0]),
@@ -307,15 +338,15 @@ class Steam extends Base {
     */
     async getSkinOrders(nameid, options) {
         try {
-            const response = await this.doRequest(`https://steamcommunity.com/market/itemordershistogram?country=RU&language=russian&currency=5&item_nameid=${nameid}&two_factor=0`, {}, { useSavedCookies: options?.withLogin === true, customProxy: options?.proxy });
-            if (response.success === 1) {
+            const { body } = await this.doRequest(`https://steamcommunity.com/market/itemordershistogram?country=RU&language=russian&currency=5&item_nameid=${nameid}&two_factor=0`, {}, { useSavedCookies: options?.withLogin === true, customProxy: options?.proxy });
+            if (body.success === 1) {
                 return {
-                    lowest_sell_order: Number(response.lowest_sell_order) / 100,
-                    highest_buy_order: Number(response.highest_buy_order) / 100
+                    lowest_sell_order: Number(body.lowest_sell_order) / 100,
+                    highest_buy_order: Number(body.highest_buy_order) / 100
                 };
             }
             else {
-                throw new Error(response);
+                throw new Error(body);
             }
         }
         catch (err) {

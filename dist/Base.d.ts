@@ -37,7 +37,10 @@ declare class Base {
         useSavedCookies?: boolean;
         /**Использовать ли на этот запрос отдельный прокси? Этот параметр перекрывает дефолтный прокси */
         customProxy?: string;
-    }): Promise<any>;
+    }): Promise<{
+        headers: import("http").IncomingHttpHeaders;
+        body: any;
+    }>;
     private getProxyAgent;
 }
 export default Base;
