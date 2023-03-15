@@ -39,10 +39,25 @@ class Base {
     }
     return result;
   }
+  protected static ParseCookiseString(cookieStr: string) {
+    const splittedCookies = cookieStr.split('; ');
+    let cookies: { [cookieName: string]: Cookie } = {};
+    for (var str of splittedCookies) {
+      const splittedCookie = str.split('=');
+      if (splittedCookie.length === 2) {
+        cookies[splittedCookie[0]] = {
+          name: splittedCookie[0],
+          value: splittedCookie[1],
+          expires: null
+        };
+      }
+    }
+    return cookies;
+  }
   /**Метод для превращения строки куков в объект
    * Важное примечание: строка, которая передается в метод должна содержать лишь одну куку и её свойства (вызывается, когда приходят куки в set-cookie)
   */
-  protected static ParseCookiesString(cookieStr: string): Cookie {
+  protected static ParseNewCookiesString(cookieStr: string): Cookie {
     const splittedCookies = cookieStr.split('; ');
     const expiresCookie = splittedCookies.filter(c => c.includes('Expires'))[0];
 
@@ -56,7 +71,7 @@ class Base {
   /**Установка массива куков, куки должны браться из set-cookie */
   protected setDirtyCookies(domen: string, cookies: string[]) {
     for (const cookie of cookies) {
-      const parsedCookie = Base.ParseCookiesString(cookie);
+      const parsedCookie = Base.ParseNewCookiesString(cookie);
       if (!this.cookies[domen]) this.cookies[domen] = {};
       this.cookies[domen][parsedCookie.name] = parsedCookie;
     }
@@ -75,7 +90,7 @@ class Base {
     try {
       const domen = url.replaceAll('http://', '').replaceAll('https://', '').split('/')[0];
       const headers = requestOptions && requestOptions.headers ? requestOptions.headers : {};
-      const cookies = requestOptions && requestOptions.headers && requestOptions.headers.cookie ? Base.ParseCookiesString(requestOptions.headers.cookie as string) : {};
+      const cookies = requestOptions && requestOptions.headers && requestOptions.headers.cookie ? Base.ParseCookiseString(requestOptions.headers.cookie as string) : {};
       delete (requestOptions?.headers);
       const allCookies = { ...this.cookies[domen], ...cookies };
       const actualRequestOptions: OptionsOfTextResponseBody = {

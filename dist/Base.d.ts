@@ -21,10 +21,13 @@ declare class Base {
     protected static PackCookiesToString(cookies: {
         [cookieName: string]: Cookie;
     }): string;
+    protected static ParseCookiseString(cookieStr: string): {
+        [cookieName: string]: Cookie;
+    };
     /**Метод для превращения строки куков в объект
      * Важное примечание: строка, которая передается в метод должна содержать лишь одну куку и её свойства (вызывается, когда приходят куки в set-cookie)
     */
-    protected static ParseCookiesString(cookieStr: string): Cookie;
+    protected static ParseNewCookiesString(cookieStr: string): Cookie;
     /**Установка массива куков, куки должны браться из set-cookie */
     protected setDirtyCookies(domen: string, cookies: string[]): void;
     /**Универсальная функция для запроса */
