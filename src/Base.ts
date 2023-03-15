@@ -5,7 +5,7 @@ import settings from "./settings.js";
 
 class Base {
   private proxy: string | null;
-  private cookies: { [cookieName: string]: Cookie } = {};
+  private cookies: { [domen: string]: { [cookieName: string]: Cookie } } = {};
   private userAgent: string;
 
   constructor(options?: ConstructorOptions) {
@@ -13,15 +13,24 @@ class Base {
     this.userAgent = options && options.userAgent ? options.userAgent : settings.defaultUserAgent
   }
 
-  public setCookies(cookies: { [cookieName: string]: Cookie }) {
-    this.cookies = cookies;
+  public setCookies(domen: string, cookies: { [cookieName: string]: Cookie }) {
+    this.cookies[domen] = cookies;
   }
-  public getCookies() {
-    return this.cookies;
+  public getAllDomens() {
+    return Object.keys(this.cookies);
   }
-  public clearCookies() {
-    this.cookies = {};
+  public getCookies(domen?: string) {
+    if (domen)
+      return this.cookies[domen];
+    else return this.cookies;
   }
+  public clearCookies(domen?: string) {
+    if (typeof (domen) === 'undefined')
+      this.cookies = {};
+    else 
+      delete (this.cookies[domen]);
+  }
+  /**Метод для превращения объекта красивых куков в строку, которую можно уже использовать в запросе */
   protected static PackCookiesToString(cookies: { [cookieName: string]: Cookie }) {
     let result = ``;
     for (const cookieName in cookies) {
@@ -30,6 +39,9 @@ class Base {
     }
     return result;
   }
+  /**Метод для превращения строки куков в объект
+   * Важное примечание: строка, которая передается в метод должна содержать лишь одну куку и её свойства (вызывается, когда приходят куки в set-cookie)
+  */
   protected static ParseCookiesString(cookieStr: string): Cookie {
     const splittedCookies = cookieStr.split('; ');
     const expiresCookie = splittedCookies.filter(c => c.includes('Expires'))[0];
@@ -41,12 +53,14 @@ class Base {
     }
     return cookie;
   }
-  protected setDirtyCookies(cookies: string[]) {
+  /**Установка массива куков, куки должны браться из set-cookie */
+  protected setDirtyCookies(domen: string, cookies: string[]) {
     for (const cookie of cookies) {
       const parsedCookie = Base.ParseCookiesString(cookie);
-      this.cookies[parsedCookie.name] = parsedCookie;
+      this.cookies[domen][parsedCookie.name] = parsedCookie;
     }
   }
+  /**Универсальная функция для запроса */
   protected async doRequest(url: string, requestOptions?: OptionsOfTextResponseBody, options?: {
     /**Ответ сервера в формате json? */
     isJsonResult?: boolean,
@@ -83,7 +97,8 @@ class Base {
         }
       const response = await got(url, actualRequestOptions);
       const newCookies = response.headers["set-cookie"];
-      if (newCookies) this.setDirtyCookies(newCookies);
+      const domen = url.replaceAll('http://', '').replaceAll('https://', '').split('/')[0];
+      if (newCookies) this.setDirtyCookies(domen, newCookies);
       if (options?.isJsonResult || typeof (options?.isJsonResult) === 'undefined') {
         try {
           return JSON.parse(response.body);

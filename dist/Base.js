@@ -9,15 +9,25 @@ class Base {
         this.proxy = options ? (options.proxy ? options.proxy : null) : null;
         this.userAgent = options && options.userAgent ? options.userAgent : settings.defaultUserAgent;
     }
-    setCookies(cookies) {
-        this.cookies = cookies;
+    setCookies(domen, cookies) {
+        this.cookies[domen] = cookies;
     }
-    getCookies() {
-        return this.cookies;
+    getAllDomens() {
+        return Object.keys(this.cookies);
     }
-    clearCookies() {
-        this.cookies = {};
+    getCookies(domen) {
+        if (domen)
+            return this.cookies[domen];
+        else
+            return this.cookies;
     }
+    clearCookies(domen) {
+        if (typeof (domen) === 'undefined')
+            this.cookies = {};
+        else
+            delete (this.cookies[domen]);
+    }
+    /**Метод для превращения объекта красивых куков в строку, которую можно уже использовать в запросе */
     static PackCookiesToString(cookies) {
         let result = ``;
         for (const cookieName in cookies) {
@@ -26,6 +36,9 @@ class Base {
         }
         return result;
     }
+    /**Метод для превращения строки куков в объект
+     * Важное примечание: строка, которая передается в метод должна содержать лишь одну куку и её свойства (вызывается, когда приходят куки в set-cookie)
+    */
     static ParseCookiesString(cookieStr) {
         const splittedCookies = cookieStr.split('; ');
         const expiresCookie = splittedCookies.filter(c => c.includes('Expires'))[0];
@@ -36,12 +49,14 @@ class Base {
         };
         return cookie;
     }
-    setDirtyCookies(cookies) {
+    /**Установка массива куков, куки должны браться из set-cookie */
+    setDirtyCookies(domen, cookies) {
         for (const cookie of cookies) {
             const parsedCookie = Base.ParseCookiesString(cookie);
-            this.cookies[parsedCookie.name] = parsedCookie;
+            this.cookies[domen][parsedCookie.name] = parsedCookie;
         }
     }
+    /**Универсальная функция для запроса */
     async doRequest(url, requestOptions, options) {
         try {
             const headers = requestOptions && requestOptions.headers ? requestOptions.headers : {};
@@ -67,11 +82,11 @@ class Base {
                     https: this.getProxyAgent(this.proxy),
                     http: this.getProxyAgent(this.proxy)
                 };
-            console.log(actualRequestOptions);
             const response = await got(url, actualRequestOptions);
             const newCookies = response.headers["set-cookie"];
+            const domen = url.replaceAll('http://', '').replaceAll('https://', '').split('/')[0];
             if (newCookies)
-                this.setDirtyCookies(newCookies);
+                this.setDirtyCookies(domen, newCookies);
             if (options?.isJsonResult || typeof (options?.isJsonResult) === 'undefined') {
                 try {
                     return JSON.parse(response.body);

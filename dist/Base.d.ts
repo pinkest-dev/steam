@@ -5,18 +5,29 @@ declare class Base {
     private cookies;
     private userAgent;
     constructor(options?: ConstructorOptions);
-    setCookies(cookies: {
+    setCookies(domen: string, cookies: {
         [cookieName: string]: Cookie;
     }): void;
-    getCookies(): {
+    getAllDomens(): string[];
+    getCookies(domen?: string): {
         [cookieName: string]: Cookie;
+    } | {
+        [domen: string]: {
+            [cookieName: string]: Cookie;
+        };
     };
-    clearCookies(): void;
+    clearCookies(domen?: string): void;
+    /**Метод для превращения объекта красивых куков в строку, которую можно уже использовать в запросе */
     protected static PackCookiesToString(cookies: {
         [cookieName: string]: Cookie;
     }): string;
+    /**Метод для превращения строки куков в объект
+     * Важное примечание: строка, которая передается в метод должна содержать лишь одну куку и её свойства (вызывается, когда приходят куки в set-cookie)
+    */
     protected static ParseCookiesString(cookieStr: string): Cookie;
-    protected setDirtyCookies(cookies: string[]): void;
+    /**Установка массива куков, куки должны браться из set-cookie */
+    protected setDirtyCookies(domen: string, cookies: string[]): void;
+    /**Универсальная функция для запроса */
     protected doRequest(url: string, requestOptions?: OptionsOfTextResponseBody, options?: {
         /**Ответ сервера в формате json? */
         isJsonResult?: boolean;

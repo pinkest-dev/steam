@@ -165,6 +165,29 @@ class Steam extends Base {
             throw new Error(`Can't generate auth code: ${err}`);
         }
     }
+    /**openidMode - можно достать со страницы входа в Steam аккаунт
+     * https://steamcommunity.com/openid/login?openid.mode= - нужно скопировать строку, которая идёт далее
+     * На эту страницу можно попасть, нажав на нужном сайте кнопку ВОЙТИ ЧЕРЕЗ STEAM
+    */
+    async getNonce(openidMode) {
+        try {
+            const response = await this.doRequest(`https://steamcommunity.com/openid/login?openid.mode=${openidMode}`, {}, { isJsonResult: false });
+            const nonce = response.match(/<input type="hidden" name="nonce" value="{0-9a-z}/g).replaceAll('<input type="hidden" name="nonce" value="', '');
+            return nonce;
+        }
+        catch (err) {
+            throw new Error(String(err));
+        }
+    }
+    /**Авторизоваться на каком-либо сайте через Steam. Отдаётся ссылка, при переходе по которой устанавливаются куки авторизации*/
+    async serviceAuthorization(openidMode) {
+        try {
+            const nonce = await this.getNonce(openidMode);
+        }
+        catch (err) {
+            throw new Error(`Can't authorize in service: ${err}`);
+        }
+    }
     /**(основной метод) Пройти авторизацию в Steam (получить доступ к аккаунту) */
     async authorization(params) {
         try {
@@ -215,7 +238,7 @@ class Steam extends Base {
     /**(работа с тп) Поставить запрос на покупку предмета */
     async createBuyOrder(params) {
         try {
-            const cookies = this.getCookies();
+            const cookies = this.getCookies(PopularDomens["steamcommunity.com"]);
             if (!cookies.sessionid)
                 throw new Error(`Not logged in`);
             const response = await this.doRequest('https://steamcommunity.com/market/createbuyorder/', {
