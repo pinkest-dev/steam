@@ -32,7 +32,8 @@ class Steam extends Base {
                     cookie: Base.PackCookiesToString(cookies)
                 }
             }).json();
-            if (response.logged_in) {
+
+            if (response.logged_in && accountName === response.account_name) {
                 return true;
             } else {
                 return false;
