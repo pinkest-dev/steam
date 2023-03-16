@@ -23,20 +23,12 @@ class Steam extends Base {
     /**Получить статус авторизации у произвольных куков*/
     static async CheckCookiesSession(accountName, cookies) {
         try {
-            const response = await got(`https://steamcommunity.com/login/getrsakey/`, {
-                method: 'POST',
+            const response = await got(`https://steamcommunity.com/chat/clientjstoken`, {
                 headers: {
-                    Referer: `https://steamcommunity.com/login/home/?goto=`,
                     cookie: Base.PackCookiesToString(cookies)
-                },
-                form: {
-                    username: accountName,
-                    donotcache: Date.now()
                 }
             }).json();
-            if (response.success) {
-                const key = new Key();
-                key.setPublic(response.publickey_mod, response.publickey_exp);
+            if (response.logged_in) {
                 return true;
             }
             else {

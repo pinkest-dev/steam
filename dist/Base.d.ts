@@ -1,3 +1,6 @@
+/// <reference types="node" />
+/// <reference types="node/http.js" />
+/// <reference types="got/dist/source/core/timed-out.js" />
 import { OptionsOfTextResponseBody } from "got";
 import { ConstructorOptions, Cookie } from "./interfaces.js";
 declare class Base {
@@ -49,6 +52,7 @@ declare class Base {
         body: string;
         statusCode: number;
     } | {
+        headers: any;
         body: any;
         statusCode: any;
     }>;

@@ -116,7 +116,7 @@ class Base {
                     return { headers, body, statusCode: statusCode };
                 }
             }).catch(err => {
-                return { body: err.response.body, statusCode: err.statusCode };
+                return { headers: err.response.headers, body: err.response.body, statusCode: err.statusCode };
             });
             return result;
         }
