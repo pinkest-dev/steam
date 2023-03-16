@@ -24,7 +24,7 @@ declare class Steam extends Base {
      * для разных сайтов нужны разные параметры для запроса, чтобы из этой ссылки получить хорошие куки, где-то надо просто установить Referer,
      * а где-то придется знатно потанцевать с бубном
     */
-    getServiceAuthirizationLink(link: string): Promise<string | undefined>;
+    getServiceAuthirizationLink(link: string): Promise<any>;
     /**(основной метод) Пройти авторизацию в Steam (получить доступ к аккаунту) */
     authorization(params: AuthentificationParams): Promise<string[]>;
     /**(метод аккаунта) получения баланса аккаунта (в установленной валюте)*/

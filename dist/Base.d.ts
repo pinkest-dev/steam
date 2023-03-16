@@ -43,6 +43,14 @@ declare class Base {
     }): Promise<{
         headers: import("http").IncomingHttpHeaders;
         body: any;
+        statusCode?: undefined;
+    } | {
+        headers: import("http").IncomingHttpHeaders;
+        body: string;
+        statusCode: number;
+    } | {
+        body: any;
+        statusCode: any;
     }>;
     private getProxyAgent;
 }

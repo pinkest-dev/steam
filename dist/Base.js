@@ -100,21 +100,25 @@ class Base {
                     https: this.getProxyAgent(this.proxy),
                     http: this.getProxyAgent(this.proxy)
                 };
-            const response = await got(url, actualRequestOptions);
-            const newCookies = response.headers["set-cookie"];
-            if (newCookies)
-                this.setDirtyCookies(domen, newCookies);
-            if (options?.isJsonResult === true || typeof (options?.isJsonResult) === 'undefined') {
-                try {
-                    return { headers: response.headers, body: JSON.parse(response.body) };
+            const result = await got(url, actualRequestOptions).then(({ headers, body, statusCode }) => {
+                const newCookies = headers["set-cookie"];
+                if (newCookies)
+                    this.setDirtyCookies(domen, newCookies);
+                if (options?.isJsonResult === true || typeof (options?.isJsonResult) === 'undefined') {
+                    try {
+                        return { headers, body: JSON.parse(body) };
+                    }
+                    catch (err) {
+                        throw new Error(`Cant parse response. It's not in json format`);
+                    }
                 }
-                catch (err) {
-                    throw new Error(`Cant parse response. It's not in json format`);
+                else {
+                    return { headers, body, statusCode: statusCode };
                 }
-            }
-            else {
-                return { headers: response.headers, body: response.body };
-            }
+            }).catch(err => {
+                return { body: err.response.body, statusCode: err.statusCode };
+            });
+            return result;
         }
         catch (err) {
             throw new Error(`Request error: ${err}`);
