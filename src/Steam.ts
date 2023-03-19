@@ -359,7 +359,7 @@ class Steam extends Base {
     /**(работа с тп) Подгрузка nameid со стима. Довольно ресурсоёмкая операция, поэтому следует минимизировать её использование 
      * @param market_hash_name - полное название предмета
     */
-    async getSkinNameid(market_hash_name: string, options?: {
+    async getSkinsNameid(market_hash_name: string, options?: {
         /**прокси в формате http://username:password@ip:port, через который пройдет запрос (он будет приоритетнее, чем тот, который передан в конструктор класса) */
         proxy?: string,
         /**Использовать ли куки аккаунта в запросе */

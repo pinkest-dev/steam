@@ -344,7 +344,7 @@ class Steam extends Base {
     /**(работа с тп) Подгрузка nameid со стима. Довольно ресурсоёмкая операция, поэтому следует минимизировать её использование
      * @param market_hash_name - полное название предмета
     */
-    async getSkinNameid(market_hash_name, options) {
+    async getSkinsNameid(market_hash_name, options) {
         try {
             const { body } = await this.doRequest(`https://steamcommunity.com/market/listings/730/${encodeURIComponent(market_hash_name)}`, {}, {
                 customProxy: options?.proxy,
