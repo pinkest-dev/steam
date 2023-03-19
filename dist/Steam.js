@@ -348,7 +348,8 @@ class Steam extends Base {
         try {
             const { body } = await this.doRequest(`https://steamcommunity.com/market/listings/730/${encodeURIComponent(market_hash_name)}`, {}, {
                 customProxy: options?.proxy,
-                useSavedCookies: options?.withLogin === true
+                useSavedCookies: options?.withLogin === true,
+                isJsonResult: false
             });
             const startPos = body.indexOf('Market_LoadOrderSpread( ') + 'Market_LoadOrderSpread( '.length;
             const endPos = body.indexOf(' )', startPos);
@@ -362,6 +363,7 @@ class Steam extends Base {
         }
     }
     /**(работа с тп) Возвращает максимальный и минимальный рыночный зарос на определенный предмет торговой площадки
+     * Возвращает истинное значение. Например: 123.32 рубля (на 100 ничего не умножается)
      * @param market_hash_name - полное название предмета
      * @param options - настройки запроса
     */
