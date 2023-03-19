@@ -356,11 +356,28 @@ class Steam extends Base {
         }
     }
 
-    /**(НЕ РАБОТАЕТ) Подгрузка nameid со стима. Довольно ресурсоёмкая операция, поэтому следует минимизировать её использование 
+    /**(работа с тп) Подгрузка nameid со стима. Довольно ресурсоёмкая операция, поэтому следует минимизировать её использование 
      * @param market_hash_name - полное название предмета
     */
-    async parseNameid(market_hash_name: string) {
-        throw new Error(`This method is not avalible`);
+    async getSkinNameid(market_hash_name: string, options?: {
+        /**прокси в формате http://username:password@ip:port, через который пройдет запрос (он будет приоритетнее, чем тот, который передан в конструктор класса) */
+        proxy?: string,
+        /**Использовать ли куки аккаунта в запросе */
+        withLogin?: boolean
+    }) {
+        try {
+            const { body } = await this.doRequest(`https://steamcommunity.com/market/listings/730/${encodeURIComponent(market_hash_name)}`, {}, {
+                customProxy: options?.proxy,
+                useSavedCookies: options?.withLogin === true
+            });
+            const startPos = body.indexOf('Market_LoadOrderSpread( ') + 'Market_LoadOrderSpread( '.length;
+            const endPos = body.indexOf(' )', startPos);
+            const nameid = Number(body.slice(startPos, endPos));
+            if (!nameid) throw new Error(`nameid not found in page`);
+            return nameid;
+        } catch (err) {
+            throw new Error(`Can't get skins nameid: ${err}`);
+        }
     }
 
     /**(работа с тп) Возвращает максимальный и минимальный рыночный зарос на определенный предмет торговой площадки

@@ -341,11 +341,25 @@ class Steam extends Base {
             throw new Error(`Can't get last sales: ${err}`);
         }
     }
-    /**(НЕ РАБОТАЕТ) Подгрузка nameid со стима. Довольно ресурсоёмкая операция, поэтому следует минимизировать её использование
+    /**(работа с тп) Подгрузка nameid со стима. Довольно ресурсоёмкая операция, поэтому следует минимизировать её использование
      * @param market_hash_name - полное название предмета
     */
-    async parseNameid(market_hash_name) {
-        throw new Error(`This method is not avalible`);
+    async getSkinNameid(market_hash_name, options) {
+        try {
+            const { body } = await this.doRequest(`https://steamcommunity.com/market/listings/730/${encodeURIComponent(market_hash_name)}`, {}, {
+                customProxy: options?.proxy,
+                useSavedCookies: options?.withLogin === true
+            });
+            const startPos = body.indexOf('Market_LoadOrderSpread( ') + 'Market_LoadOrderSpread( '.length;
+            const endPos = body.indexOf(' )', startPos);
+            const nameid = Number(body.slice(startPos, endPos));
+            if (!nameid)
+                throw new Error(`nameid not found in page`);
+            return nameid;
+        }
+        catch (err) {
+            throw new Error(`Can't get skins nameid: ${err}`);
+        }
     }
     /**(работа с тп) Возвращает максимальный и минимальный рыночный зарос на определенный предмет торговой площадки
      * @param market_hash_name - полное название предмета
