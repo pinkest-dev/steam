@@ -294,6 +294,29 @@ class Steam extends Base {
             throw new Error(`Can't create buy order: ${err}`);
         }
     }
+    /**(работа с тп) Удалить запрос на покупку */
+    async cancelBuyOrder(orderid) {
+        try {
+            const cookies = this.getCookies("steamcommunity.com");
+            const { body } = await this.doRequest('https://steamcommunity.com/market/cancelbuyorder/', {
+                method: 'POST',
+                headers: {
+                    "Referer": `https://steamcommunity.com/market/`,
+                    "Referrer-Policy": "strict-origin-when-cross-origin"
+                },
+                form: {
+                    sessionid: cookies.sessionid.value,
+                    buy_orderid: orderid
+                }
+            });
+            if (body.success != 1) {
+                throw new Error(body);
+            }
+        }
+        catch (err) {
+            throw new Error(`Can't cancel buy order #${orderid}: ${err}`);
+        }
+    }
     /**(работа с тп) Возвращает все точки на графике определенного предмета торговой площадки, отображаемые в Steam [date, price, quantity][] В ДОЛЛАРАХ США!
      * @param market_hash_name - полное название предмета
      * @param options - настройки запроса
@@ -343,6 +366,54 @@ class Steam extends Base {
         }
         catch (err) {
             throw new Error(`Can't get skin orders: ${err}`);
+        }
+    }
+    /**(работа с тп) Возвращает список выставленных ордеров на покупку на торговой площадке */
+    async getMyBuyOrders() {
+        try {
+            const { body } = await this.doRequest(`https://steamcommunity.com/market/mylistings`);
+            const html = body.results_html;
+            if (!html || typeof (html) != 'string')
+                throw new Error(`steam don't return orders data (1)`);
+            let pos = html.indexOf('my_listing_section market_content_block market_home_listing_table');
+            if (pos === -1)
+                throw new Error(`steam don't return orders data (1)`);
+            const buyOrders = [];
+            while (true) {
+                if (html.indexOf(`id="mybuyorder_`, pos) === -1)
+                    break;
+                const orderidStartPos = html.indexOf(`id="mybuyorder_`, pos) + `id="mybuyorder_`.length;
+                const orderidEndPos = html.indexOf(`"`, orderidStartPos);
+                const quantityStartPos = html.indexOf(`market_listing_inline_buyorder_qty">`, pos) + `market_listing_inline_buyorder_qty">`.length;
+                const quantityEndPos = html.indexOf(`@`, quantityStartPos);
+                const priceStartPos = html.indexOf(`</span>`, quantityEndPos) + `</span>`.length;
+                const priceEndPos = html.indexOf(`</span>`, priceStartPos);
+                const mhnStartPos = html.indexOf(`market_listing_item_name_link`, priceEndPos) + `market_listing_item_name_link`.length;
+                const mhnMiddlePos = html.indexOf('>', mhnStartPos) + '>'.length;
+                const mhnEndPos = html.indexOf(`</a>`, mhnMiddlePos);
+                const gameidStartPos = html.indexOf(`https://steamcommunity.com/market/listings/`, mhnStartPos) + `https://steamcommunity.com/market/listings/`.length;
+                const gameidEndPos = html.indexOf('/', gameidStartPos);
+                const orderid = Number(html.slice(orderidStartPos, orderidEndPos));
+                const quantity = Number(html.slice(quantityStartPos, quantityEndPos));
+                const priceData = html.slice(priceStartPos, priceEndPos);
+                const price = Number(priceData.split(' ')[0].trim().replaceAll(' ', '').replaceAll(',', '.'));
+                const currency = priceData.split(' ')[1].trim();
+                const mhn = html.slice(mhnMiddlePos, mhnEndPos);
+                const gameid = Number(html.slice(gameidStartPos, gameidEndPos));
+                pos = quantityEndPos;
+                buyOrders.push({
+                    id: orderid,
+                    quantity,
+                    price,
+                    currency,
+                    market_hash_name: mhn,
+                    gameid
+                });
+            }
+            return buyOrders;
+        }
+        catch (err) {
+            throw new Error(`Can't get my buy orders: ${err}`);
         }
     }
 }

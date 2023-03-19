@@ -72,3 +72,11 @@ export interface CreateBuyOrderParams {
     /**Валюта, в которой будет выставлен запрос. Должна совпадать с валютой аккаунта. usd = 1; euro = 2; rub = 5; */
     currency: number;
 }
+export interface BuyOrder {
+    id: number;
+    price: number;
+    currency: string;
+    gameid: number;
+    market_hash_name: string;
+    quantity: number;
+}

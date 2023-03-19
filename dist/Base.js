@@ -116,11 +116,17 @@ class Base {
                     return { headers, body, statusCode: statusCode };
                 }
             }).catch(err => {
-                return { headers: err.response.headers, body: err.response.body, statusCode: err.statusCode };
+                if (err.response)
+                    return { headers: err.response.headers, body: err.response.body, statusCode: err.statusCode };
+                else {
+                    console.log(err);
+                    throw new Error(err);
+                }
             });
             return result;
         }
         catch (err) {
+            console.log(err);
             throw new Error(`Request error: ${err}`);
         }
     }

@@ -1,5 +1,5 @@
 import Base from "./Base.js";
-import { AuthentificationParams, ConstructorOptions, Cookie, CreateBuyOrderParams } from "./interfaces.js";
+import { AuthentificationParams, BuyOrder, ConstructorOptions, Cookie, CreateBuyOrderParams } from "./interfaces.js";
 declare class Steam extends Base {
     constructor(options?: ConstructorOptions);
     private getClientJsToken;
@@ -34,6 +34,8 @@ declare class Steam extends Base {
     }>;
     /**(работа с тп) Поставить запрос на покупку предмета */
     createBuyOrder(params: CreateBuyOrderParams): Promise<void>;
+    /**(работа с тп) Удалить запрос на покупку */
+    cancelBuyOrder(orderid: number): Promise<void>;
     /**(работа с тп) Возвращает все точки на графике определенного предмета торговой площадки, отображаемые в Steam [date, price, quantity][] В ДОЛЛАРАХ США!
      * @param market_hash_name - полное название предмета
      * @param options - настройки запроса
@@ -61,5 +63,7 @@ declare class Steam extends Base {
         lowest_sell_order: number;
         highest_buy_order: number;
     }>;
+    /**(работа с тп) Возвращает список выставленных ордеров на покупку на торговой площадке */
+    getMyBuyOrders(): Promise<BuyOrder[]>;
 }
 export default Steam;
