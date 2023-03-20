@@ -392,7 +392,7 @@ class Steam extends Base {
                 return {
                     lowest_price: Number(body.lowest_price.split(' ')[0].replace(',', '.')),
                     currency: body.lowest_price.split(' ')[1],
-                    volume: Number(body.volume),
+                    volume: Number(body.volume.replace(',', '')),
                     median_price: Number(body.median_price.split(' ')[0].replace(',', '.'))
                 };
             }
