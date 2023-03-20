@@ -119,7 +119,6 @@ class Base {
                 if (err.response)
                     return { headers: err.response.headers, body: err.response.body, statusCode: err.statusCode };
                 else {
-                    console.log(err);
                     throw new Error(err);
                 }
             });

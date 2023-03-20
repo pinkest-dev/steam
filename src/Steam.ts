@@ -359,14 +359,14 @@ class Steam extends Base {
     /**(работа с тп) Подгрузка nameid со стима. Довольно ресурсоёмкая операция, поэтому следует минимизировать её использование 
      * @param market_hash_name - полное название предмета
     */
-    async getSkinsNameid(market_hash_name: string, options?: {
+    async getSkinsNameid(market_hash_name: string, gameid: number, options?: {
         /**прокси в формате http://username:password@ip:port, через который пройдет запрос (он будет приоритетнее, чем тот, который передан в конструктор класса) */
         proxy?: string,
         /**Использовать ли куки аккаунта в запросе */
         withLogin?: boolean
     }) {
         try {
-            const { body } = await this.doRequest(`https://steamcommunity.com/market/listings/730/${encodeURIComponent(market_hash_name)}`, {}, {
+            const { body } = await this.doRequest(`https://steamcommunity.com/market/listings/${gameid}/${encodeURIComponent(market_hash_name)}`, {}, {
                 customProxy: options?.proxy,
                 useSavedCookies: options?.withLogin === true,
                 isJsonResult: false
