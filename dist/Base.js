@@ -93,7 +93,8 @@ class Base {
                     secureConnect: 50,
                     socket: 1000,
                     send: 10000,
-                    response: 1000
+                    response: 1000,
+                    request: 10000
                 },
                 ...requestOptions
             };
