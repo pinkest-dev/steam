@@ -410,6 +410,34 @@ class Steam extends Base {
             throw new Error(`Can't get skin orders: ${err}`);
         }
     }
+
+    /**(работа с тп) В основе этого метода лежит запрос, который в стиме используется для получения цены предмета в инвентаре*/
+    async getSkinsPrice(market_hash_name: string, appid: number, options?: {
+        /**прокси в формате http://username:password@ip:port, через который пройдет запрос (он будет приоритетнее, чем тот, который передан в конструктор класса) */
+        proxy?: string,
+        /**Использовать ли куки аккаунта в запросе */
+        withLogin?: boolean
+    }) {
+        try {
+            const { body } = await this.doRequest(
+                `https://steamcommunity.com/market/priceoverview/?country=RU&currency=5&appid=${appid}&market_hash_name=${encodeURIComponent(market_hash_name)}`,
+                {},
+                { useSavedCookies: options?.withLogin === true, customProxy: options?.proxy }
+            );
+            if (body.success) {
+                return {
+                    lowest_price: Number(body.lowest_price.split(' ')[0].replace(',', '.')),
+                    currency: body.lowest_price.split(' ')[1],
+                    volume: Number(body.volume),
+                    median_price: Number(body.median_price.split(' ')[0].replace(',', '.'))
+                }
+            } else {
+                throw new Error(body);
+            }
+        } catch (err) {
+            throw new Error(`Can't get skin price: ${err}`);
+        }
+    }
     /**(работа с тп) Возвращает список выставленных ордеров на покупку на торговой площадке */
     async getMyBuyOrders() {
         try {

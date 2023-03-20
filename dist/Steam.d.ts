@@ -69,6 +69,18 @@ declare class Steam extends Base {
         lowest_sell_order: number;
         highest_buy_order: number;
     }>;
+    /**(работа с тп) В основе этого метода лежит запрос, который в стиме используется для получения цены предмета в инвентаре*/
+    getSkinsPrice(market_hash_name: string, appid: number, options?: {
+        /**прокси в формате http://username:password@ip:port, через который пройдет запрос (он будет приоритетнее, чем тот, который передан в конструктор класса) */
+        proxy?: string;
+        /**Использовать ли куки аккаунта в запросе */
+        withLogin?: boolean;
+    }): Promise<{
+        lowest_price: number;
+        currency: any;
+        volume: number;
+        median_price: number;
+    }>;
     /**(работа с тп) Возвращает список выставленных ордеров на покупку на торговой площадке */
     getMyBuyOrders(): Promise<BuyOrder[]>;
 }
