@@ -87,6 +87,14 @@ class Base {
                     'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36`,
                     ...headers
                 },
+                timeout: {
+                    lookup: 100,
+                    connect: 50,
+                    secureConnect: 50,
+                    socket: 1000,
+                    send: 10000,
+                    response: 1000
+                },
                 ...requestOptions
             };
             if (options?.customProxy) {
