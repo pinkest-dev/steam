@@ -489,6 +489,86 @@ class Steam extends Base {
             throw new Error(`Can't get my buy orders: ${err}`);
         }
     }
+
+    /**(работа с тп) Получить выставленные на тп предметы (определенная страница определенного скина). Получает сразу 100 лотов */
+    async getListings(market_hash_name: string, appid: number, pageNumber: number, currency: number, options?: {
+        /**прокси в формате http://username:password@ip:port, через который пройдет запрос (он будет приоритетнее, чем тот, который передан в конструктор класса) */
+        proxy?: string,
+        /**Использовать ли куки аккаунта в запросе */
+        withLogin?: boolean
+    }): Promise<{
+        assetid: string;
+        listingid: string;
+        link: string;
+        price: number;
+        subtotal: number;
+        fee: number;
+    }[]> {
+        try {
+            console.log(`https://steamcommunity.com/market/listings/${appid}/${encodeURIComponent(market_hash_name)}/render/?query=&start=${(pageNumber * 100).toFixed(0)}&count=${100}&currency=${currency}`);
+            const { body } = await this.doRequest(`https://steamcommunity.com/market/listings/${appid}/${encodeURIComponent(market_hash_name)}/render/?query=&start=${(pageNumber * 100).toFixed(0)}&count=${100}&currency=${currency}`, {
+
+            }, {
+                useSavedCookies: options?.withLogin,
+                customProxy: options?.proxy
+            });
+            const results: any[] = [];
+            console.log(body);
+            const listinginfo = body.listinginfo;
+            for (var listingid in listinginfo) {
+                const assetid = listinginfo[listingid].asset.id;
+                const link = listinginfo[listingid].asset.market_actions[0].link;
+                const price = listinginfo[listingid].converted_price + listinginfo[listingid].converted_fee;
+                const fee = listinginfo[listingid].converted_fee;
+                results.push({
+                    listingid,
+                    assetid,
+                    link,
+                    price,
+                    subtotal: listinginfo[listingid].converted_price,
+                    fee
+                });
+            }
+            return results;
+        } catch (err) {
+            throw new Error(`Can't get lisings: ${err}`);
+        }
+    }
+
+    /**(работа с тп) Купить определённый скин на торговой площадке
+     * listingid - айди лота на торговой площадке
+     * price - полная цена предмета
+     * fee - комиссия
+     */
+    async buyListing(listingid: string, appid: number, market_hash_name: string, currency: number, price: number, fee: number) {
+        try {
+            const cookies = this.getCookies(PopularDomens["steamcommunity.com"]);
+            if (!cookies.sessionid) throw new Error(`Not logged in`);
+            const { body } = await this.doRequest(`https://steamcommunity.com/market/buylisting/${listingid}`, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                    cookie: `ActListPageSize=10; timezoneOffset=10800,0; _ga=GA1.2.1330735887.1675463736; browserid=2770312231136152340; strInventoryLastContext=730_2; steamCurrencyId=5; sessionid=a501872b298accaf9f4f01df; steamCountry=US%7Cafd59e0d395cea439abfed43f3f702f1; steamLoginSecure=76561198872168630%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MEQyNF8yMjQ3RjZERV82NThFMSIsICJzdWIiOiAiNzY1NjExOTg4NzIxNjg2MzAiLCAiYXVkIjogWyAid2ViIiBdLCAiZXhwIjogMTY4MDE5ODYxOSwgIm5iZiI6IDE2NzE0NzA4NDcsICJpYXQiOiAxNjgwMTEwODQ3LCAianRpIjogIjBEMkJfMjI0RDFEQTBfODVGMkEiLCAib2F0IjogMTY3OTc3Nzk5MSwgInJ0X2V4cCI6IDE2OTc3OTg1MzcsICJwZXIiOiAwLCAiaXBfc3ViamVjdCI6ICI5MS4xODguMjM4LjE0IiwgImlwX2NvbmZpcm1lciI6ICI5MS4xODguMjM4LjE0IiB9.ty5ExMC3fHcXsb6Dy5t4B_oYEEJpAPI1UdnvPxt9yBjifiCBNzN578UF8MP3_TWTLLb-ZsFTzxzaSUatlFZODg; webTradeEligibility=%7B%22allowed%22%3A1%2C%22allowed_at_time%22%3A0%2C%22steamguard_required_days%22%3A15%2C%22new_device_cooldown_days%22%3A0%2C%22time_checked%22%3A1680110848%7D; _gid=GA1.2.1679133265.1680110852`,
+                    Referer: `https://steamcommunity.com/market/listings/${appid}/${encodeURIComponent(market_hash_name)}`
+                },
+                form: {
+                    sessionid: cookies.sessionid.value,
+                    currency,
+                    subtotal: price - fee,
+                    fee,
+                    total: price,
+                    quantity: 1,
+                    save_my_adress: 0
+                }
+            });
+            console.log(body);
+            if (!body.wallet_info) {
+                throw new Error(body);
+            }
+        } catch (err) {
+            throw new Error(`Can't buy listing: ${err}`);
+        }
+    }
 }
 
 export default Steam;

@@ -2,27 +2,27 @@ export default {
     cookies: {
         sessionid: {
             name: 'sessionid',
-            value: '*',
+            value: '',
             expires: null
         },
         steamCountry: {
             name: 'steamCountry',
-            value: '*',
+            value: '',
             expires: null
         },
         steamLoginSecure: {
             name: 'steamLoginSecure',
-            value: '*',
+            value: '',
             expires: null
         },
         steamMachineAuth76561198314122541: {
-            name: 'steamMachineAuth76561198314122541',
-            value: '*',
+            name: '',
+            value: '',
             expires: null
         },
         steamRememberLogin: {
             name: 'steamRememberLogin',
-            value: '*',
+            value: '',
             expires: null
         }
     }

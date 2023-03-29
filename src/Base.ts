@@ -96,19 +96,13 @@ class Base {
       const actualRequestOptions: OptionsOfTextResponseBody = {
         headers: {
           cookie: options?.useSavedCookies === false ? undefined : Base.PackCookiesToString(allCookies),
-          'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36`,
+          'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36`,
           ...headers
         },
         timeout: {
-          lookup: 100,
-          connect: 50,
-          secureConnect: 50,
-          socket: 1000,
-          send: 10000,
-          response: 1000,
           request: 10000
         },
-        
+
         ...requestOptions
       }
 
@@ -122,6 +116,7 @@ class Base {
           https: this.getProxyAgent(this.proxy),
           http: this.getProxyAgent(this.proxy)
         }
+      console.log(actualRequestOptions);
       const result = await got(url, actualRequestOptions).then(({ headers, body, statusCode }) => {
         const newCookies = headers["set-cookie"];
         if (newCookies) this.setDirtyCookies(domen, newCookies);

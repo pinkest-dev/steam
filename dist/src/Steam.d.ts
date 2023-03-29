@@ -83,25 +83,11 @@ declare class Steam extends Base {
     }>;
     /**(работа с тп) Возвращает список выставленных ордеров на покупку на торговой площадке */
     getMyBuyOrders(): Promise<BuyOrder[]>;
-    /**(работа с тп) Получить выставленные на тп предметы (определенная страница определенного скина). Получает сразу 100 лотов */
-    getListings(market_hash_name: string, appid: number, pageNumber: number, currency: number, options?: {
-        /**прокси в формате http://username:password@ip:port, через который пройдет запрос (он будет приоритетнее, чем тот, который передан в конструктор класса) */
-        proxy?: string;
-        /**Использовать ли куки аккаунта в запросе */
-        withLogin?: boolean;
-    }): Promise<{
-        assetid: string;
-        listingid: string;
-        link: string;
-        price: number;
-        subtotal: number;
-        fee: number;
-    }[]>;
     /**(работа с тп) Купить определённый скин на торговой площадке
      * listingid - айди лота на торговой площадке
      * price - полная цена предмета
      * fee - комиссия
      */
-    buyListing(listingid: string, appid: number, market_hash_name: string, currency: number, price: number, fee: number): Promise<void>;
+    buyListing(listingid: string, market_hash_name: string, currency: number, price: number, fee: number): Promise<void>;
 }
 export default Steam;
