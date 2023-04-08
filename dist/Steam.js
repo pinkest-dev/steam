@@ -1,4 +1,4 @@
-import Base from "./Base.js";
+import Base from "request-base";
 import crypto from "crypto";
 //@ts-ignore
 import { hex2b64, Key } from "node-bignumber";

@@ -1,4 +1,4 @@
-import Base from "../Base.js";
+import Base from "request-base";
 
 class Test extends Base {
     static Run() {

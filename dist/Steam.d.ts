@@ -1,4 +1,4 @@
-import Base from "./Base.js";
+import Base from "request-base";
 import { AuthentificationParams, BuyOrder, ConstructorOptions, Cookie, CreateBuyOrderParams } from "./interfaces.js";
 declare class Steam extends Base {
     constructor(options?: ConstructorOptions);

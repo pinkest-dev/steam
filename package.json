@@ -20,7 +20,8 @@
     "fs": "^0.0.1-security",
     "got": "^12.6.0",
     "hpagent": "^1.2.0",
-    "node-bignumber": "^1.2.2"
+    "node-bignumber": "^1.2.2",
+    "request-base": "github:pinkest-dev/request-base"
   },
   "type": "module"
 }
