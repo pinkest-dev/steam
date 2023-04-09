@@ -4,7 +4,7 @@ declare class Steam extends Base {
     constructor(options?: ConstructorOptions);
     private getClientJsToken;
     getMySteamid64(): string;
-    getInventory(steamid: string, options?: {
+    getInventory(steamid: string, appid: number, contextid: string, options?: {
         proxy?: string;
     }): Promise<Inventory>;
     sendTrade(tradeurl: string, myItems: TradeItem[], partnerItems: TradeItem[], message?: string): Promise<void>;

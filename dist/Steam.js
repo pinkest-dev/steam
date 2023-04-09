@@ -26,10 +26,13 @@ class Steam extends Base {
         }
         throw new Error("No Steamid in cookies");
     }
-    async getInventory(steamid, options) {
+    async getInventory(steamid, appid, contextid, options) {
         try {
-            const { body } = await this.doRequest(`https://steamcommunity.com/inventory/${steamid}/730/2`, {}, { customProxy: options?.proxy });
+            const { body } = await this.doRequest(`https://steamcommunity.com/inventory/${steamid}/${appid}/${contextid}`, {}, { customProxy: options?.proxy });
             if (body.success) {
+                if (body.total_inventory_count == 0) {
+                    return [];
+                }
                 const inventory = [];
                 const rawInventory = body;
                 const assets = rawInventory.assets;

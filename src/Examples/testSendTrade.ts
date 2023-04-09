@@ -10,7 +10,7 @@ steam.setCookies("steamcommunity.com", savedCookies);
 
 console.log(steam.getMySteamid64());
 
-const inventory = await steam.getInventory(steam.getMySteamid64());
+const inventory = await steam.getInventory(steam.getMySteamid64(), 730, '2');
 
 const tradableItems = inventory.filter(i => i.tradable);
 
