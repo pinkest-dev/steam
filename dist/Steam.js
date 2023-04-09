@@ -68,7 +68,6 @@ class Steam extends Base {
             const partner = tradeurl.match(/partner=[0-9a-zA-Z]*/g)[0].replace("partner=", '');
             const steamCookies = this.getCookies("steamcommunity.com");
             const sessionid = steamCookies.sessionid;
-            console.log(sessionid);
             const newMyItems = [];
             for (var i of myItems) {
                 newMyItems.push({
@@ -102,8 +101,7 @@ class Steam extends Base {
                     trade_offer_create_params: JSON.stringify({ trade_offer_access_token: token })
                 }
             });
-            console.log(requestOptions);
-            console.log(body);
+            return body.tradeofferid;
         }
         catch (err) {
             const message = err.message || "Unknown error";

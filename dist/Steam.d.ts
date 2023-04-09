@@ -7,7 +7,7 @@ declare class Steam extends Base {
     getInventory(steamid: string, appid: number, contextid: string, options?: {
         proxy?: string;
     }): Promise<Inventory>;
-    sendTrade(tradeurl: string, myItems: TradeItem[], partnerItems: TradeItem[], message?: string): Promise<void>;
+    sendTrade(tradeurl: string, myItems: TradeItem[], partnerItems: TradeItem[], message?: string): Promise<string>;
     getSteamID64fromAccountID(id: string): string;
     /**Получить статус авторизации. Проверить авторизованы ли мы сейчас в Steam? Действительны ли наши куки*/
     isAuthorized(): Promise<boolean>;

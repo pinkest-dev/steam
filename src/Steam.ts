@@ -68,14 +68,13 @@ class Steam extends Base {
         }
     }
 
-    async sendTrade(tradeurl: string, myItems: TradeItem[], partnerItems: TradeItem[], message?: string) {
+    async sendTrade(tradeurl: string, myItems: TradeItem[], partnerItems: TradeItem[], message?: string): Promise<string> {
         try {
             //https://steamcommunity.com/tradeoffer/new/?partner=1025103026&token=cNxaf2qH
             const token = tradeurl.match(/token=[0-9a-zA-Z]*/g)![0].replace("token=", '');
             const partner = tradeurl.match(/partner=[0-9a-zA-Z]*/g)![0].replace("partner=", '');
             const steamCookies = this.getCookies("steamcommunity.com");
             const sessionid = steamCookies.sessionid;
-            console.log(sessionid);
 
             const newMyItems: any[] = [];
 
@@ -113,8 +112,8 @@ class Steam extends Base {
                     trade_offer_create_params: JSON.stringify({ trade_offer_access_token: token })
                 }
             });
-            console.log(requestOptions);
-            console.log(body);
+            
+            return body.tradeofferid;
         } catch (err) {
             const message = (err as any).message || "Unknown error";
             throw new Error(`Send trade error: ${message}`);
