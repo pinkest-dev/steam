@@ -2,7 +2,8 @@ import Base from "request-base";
 import crypto from "crypto";
 //@ts-ignore
 import { hex2b64, Key } from "node-bignumber";
-import { AuthentificationParams, BuyOrder, ClientJsToken, ConstructorOptions, Cookie, CreateBuyOrderParams, DoLoginParams, RsaKey } from "./interfaces.js";
+import { UINT64 } from "cuint";
+import { AuthentificationParams, BuyOrder, ClientJsToken, ConstructorOptions, Cookie, CreateBuyOrderParams, DoLoginParams, Inventory, InventoryItem, RawInventory, RsaKey, TradeItem } from "./interfaces.js";
 import got from "got";
 import PopularDomens from "./Enums/PopularDomens.js";
 
@@ -18,6 +19,107 @@ class Steam extends Base {
             }
         });
         return body as ClientJsToken;
+    }
+
+    getMySteamid64() {
+        const cookies = this.getCookies("steamcommunity.com");
+        for (var cookieName in cookies) {
+            if (cookieName.includes("steamMachineAuth")) {
+                return cookieName.replace("steamMachineAuth", '');
+            }
+        }
+        throw new Error("No Steamid in cookies");
+    }
+
+    async getInventory(steamid: string, options?: {
+        proxy?: string
+    }): Promise<Inventory> {
+        try {
+            const { body } = await this.doRequest(`https://steamcommunity.com/inventory/${steamid}/730/2`, {}, { customProxy: options?.proxy });
+            if (body.success) {
+                const inventory: Inventory = [];
+                const rawInventory: RawInventory = body;
+                const assets = rawInventory.assets;
+                const descriptions = rawInventory.descriptions;
+
+                for (let i = 0; i < assets.length; i++) {
+                    const currentAsset = assets[i];
+                    for (let j = 0; j < descriptions.length; j++) {
+                        if (currentAsset.classid === descriptions[j].classid) {
+                            const item: InventoryItem = {
+                                ...assets[i],
+                                tradable: descriptions[j].tradable,
+                                market_hash_name: descriptions[j].market_hash_name
+                            }
+                            inventory.push(item);
+                        }
+                    }
+                }
+                return inventory;
+            } else {
+                throw new Error(body.error);
+            }
+        } catch (err) {
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get inventory error: ${message}`);
+        }
+    }
+
+    async sendTrade(tradeurl: string, myItems: TradeItem[], partnerItems: TradeItem[], message?: string) {
+        try {
+            //https://steamcommunity.com/tradeoffer/new/?partner=1025103026&token=cNxaf2qH
+            const token = tradeurl.match(/token=[0-9a-zA-Z]*/g)![0].replace("token=", '');
+            const partner = tradeurl.match(/partner=[0-9a-zA-Z]*/g)![0].replace("partner=", '');
+            const steamCookies = this.getCookies("steamcommunity.com");
+            const sessionid = steamCookies.sessionid;
+            console.log(sessionid);
+
+            const newMyItems: any[] = [];
+
+            for (var i of myItems) {
+                newMyItems.push({
+                    assetid: i.assetid,
+                    appid: i.appid,
+                    contextid: i.contextid,
+                    amount: i.amount
+                });
+            }
+
+            if (!sessionid) {
+                throw new Error("Not logged in");
+            }
+
+            const { body, requestOptions } = await this.doRequest(`https://steamcommunity.com/tradeoffer/new/send`, {
+                method: 'POST',
+                headers: {
+                    Referer: "https://steamcommunity.com/tradeoffer/new",
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+                },
+                form: {
+                    sessionid: sessionid.value,
+                    serverid: 1,
+                    partner: this.getSteamID64fromAccountID(partner),
+                    tradeoffermessage: message || "",
+                    json_tradeoffer: JSON.stringify({
+                        newversion: true,
+                        version: myItems.length + partnerItems.length + 1,
+                        me: { assets: newMyItems, currency: [], ready: false },
+                        them: { assets: partnerItems, currency: [], ready: false }
+                    }),
+                    captcha: "",
+                    trade_offer_create_params: JSON.stringify({ trade_offer_access_token: token })
+                }
+            });
+            console.log(requestOptions);
+            console.log(body);
+        } catch (err) {
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Send trade error: ${message}`);
+        }
+    }
+
+    getSteamID64fromAccountID(id: string) {
+        return new UINT64(+id, (1 << 24) | (1 << 20) | 1).toString()
     }
 
     /**Получить статус авторизации. Проверить авторизованы ли мы сейчас в Steam? Действительны ли наши куки*/
@@ -39,7 +141,8 @@ class Steam extends Base {
                 return false;
             }
         } catch (err) {
-            throw new Error(`Can't check cookies session: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Check cookies active status error: ${message}`);
         }
     }
 
@@ -63,7 +166,8 @@ class Steam extends Base {
                 throw new Error(`Can't get rsa key: ${JSON.stringify(body)}`);
             }
         } catch (err) {
-            throw new Error(`Can't get Rsa Key: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get rsa key error: ${message}`);
         }
     }
     private async doLogin(options: DoLoginParams) {
@@ -113,7 +217,8 @@ class Steam extends Base {
                 return newCookies;
             }
         } catch (err) {
-            throw new Error(`Cant't do login: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`doLogin error: ${message}`);
         }
     }
     private generateSessionID() {
@@ -127,7 +232,8 @@ class Steam extends Base {
                 return Buffer.from(shared_secret, 'base64')
             }
         } catch (err) {
-            throw new Error(`Can't bufferize shared_secret: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Bufferize secret error: ${message}`);
         }
     }
 
@@ -157,7 +263,8 @@ class Steam extends Base {
 
             return code;
         } catch (err) {
-            throw new Error(`Can't generate auth code: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Generate auth code error: ${message}`);
         }
     }
 
@@ -177,28 +284,34 @@ class Steam extends Base {
             const openid = rawOpenidparams[0].replaceAll('<input type="hidden" name="openidparams" value="', '');
             return { nonce, openid };
         } catch (err) {
-            throw err;
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get nonceid error: ${message}`);
         }
     }
 
     private async openidLogin(link: string, nonce: string, openid: string) {
-        const { headers } = await this.doRequest(`https://steamcommunity.com/openid/login`, {
-            method: 'POST',
-            headers: {
-                Referer: link,
-                Origin: `https://steamcommunity.com`
-            },
-            form: {
-                action: "steam_openid_login",
-                nonce: nonce,
-                "openid.mode": "checkid_setup",
-                openidparams: openid
-            },
-            followRedirect: false
-        }, {
-            isJsonResult: false
-        });
-        return headers.location;
+        try {
+            const { headers } = await this.doRequest(`https://steamcommunity.com/openid/login`, {
+                method: 'POST',
+                headers: {
+                    Referer: link,
+                    Origin: `https://steamcommunity.com`
+                },
+                form: {
+                    action: "steam_openid_login",
+                    nonce: nonce,
+                    "openid.mode": "checkid_setup",
+                    openidparams: openid
+                },
+                followRedirect: false
+            }, {
+                isJsonResult: false
+            });
+            return headers.location;
+        } catch (err) {
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Openid login error: ${message}`);
+        }
     }
 
     /**Авторизоваться на каком-либо сайте через Steam. Отдаётся ссылка, при переходе по которой устанавливаются куки авторизации 
@@ -211,7 +324,7 @@ class Steam extends Base {
             const location = await this.openidLogin(link, params.nonce, params.openid);
             return location;
         } catch (err) {
-            throw new Error(`Can't authorize in service: ${err}`);
+            throw new Error(`Service authorization error: ${err}`);
         }
     }
 
@@ -234,7 +347,8 @@ class Steam extends Base {
                 throw new Error(`Authentification params is not valid`);
             }
         } catch (err) {
-            throw new Error(`Can't authentificate in Steam: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Steam authorization error: ${message}`);
         }
     }
 
@@ -260,7 +374,8 @@ class Steam extends Base {
 
             return { currency, balance }
         } catch (err) {
-            throw new Error(`Can't get Steam balance: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get balance error: ${message}`);
         }
     }
 
@@ -293,7 +408,8 @@ class Steam extends Base {
                 throw new Error(`Order already exists`);
             }
         } catch (err) {
-            throw new Error(`Can't create buy order: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Buy order error: ${message}`);
         }
     }
 
@@ -317,7 +433,8 @@ class Steam extends Base {
                 throw new Error(body);
             }
         } catch (err) {
-            throw new Error(`Can't cancel buy order #${orderid}: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Buy order error: ${message}`);
         }
     }
 
@@ -352,7 +469,8 @@ class Steam extends Base {
             });
             return results;
         } catch (err) {
-            throw new Error(`Can't get last sales: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get skin sales error: ${message}`);
         }
     }
 
@@ -377,7 +495,8 @@ class Steam extends Base {
             if (!nameid) throw new Error(`nameid not found in page`);
             return nameid;
         } catch (err) {
-            throw new Error(`Can't get skins nameid: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get nameid error: ${message}`);
         }
     }
 
@@ -407,7 +526,8 @@ class Steam extends Base {
                 throw new Error(body);
             }
         } catch (err) {
-            throw new Error(`Can't get skin orders: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`get Skin orders error: ${message}`);
         }
     }
 
@@ -435,7 +555,8 @@ class Steam extends Base {
                 throw new Error(body);
             }
         } catch (err) {
-            throw new Error(`Can't get skin price: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get skins price error: ${message}`);
         }
     }
     /**(работа с тп) Возвращает список выставленных ордеров на покупку на торговой площадке */
@@ -486,7 +607,8 @@ class Steam extends Base {
             }
             return buyOrders;
         } catch (err) {
-            throw new Error(`Can't get my buy orders: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get buy orders error: ${message}`);
         }
     }
 
@@ -531,7 +653,8 @@ class Steam extends Base {
             }
             return results;
         } catch (err) {
-            throw new Error(`Can't get lisings: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get listings error: ${message}`);
         }
     }
 
@@ -544,11 +667,11 @@ class Steam extends Base {
         try {
             const cookies = this.getCookies(PopularDomens["steamcommunity.com"]);
             if (!cookies.sessionid) throw new Error(`Not logged in`);
-            const { body } = await this.doRequest(`https://steamcommunity.com/market/buylisting/${listingid}`, {
+            const { body, statusCode } = await this.doRequest(`https://steamcommunity.com/market/buylisting/${listingid}`, {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                    cookie: `ActListPageSize=10; timezoneOffset=10800,0; _ga=GA1.2.1330735887.1675463736; browserid=2770312231136152340; strInventoryLastContext=730_2; steamCurrencyId=5; sessionid=a501872b298accaf9f4f01df; steamCountry=US%7Cafd59e0d395cea439abfed43f3f702f1; steamLoginSecure=76561198872168630%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MEQyNF8yMjQ3RjZERV82NThFMSIsICJzdWIiOiAiNzY1NjExOTg4NzIxNjg2MzAiLCAiYXVkIjogWyAid2ViIiBdLCAiZXhwIjogMTY4MDE5ODYxOSwgIm5iZiI6IDE2NzE0NzA4NDcsICJpYXQiOiAxNjgwMTEwODQ3LCAianRpIjogIjBEMkJfMjI0RDFEQTBfODVGMkEiLCAib2F0IjogMTY3OTc3Nzk5MSwgInJ0X2V4cCI6IDE2OTc3OTg1MzcsICJwZXIiOiAwLCAiaXBfc3ViamVjdCI6ICI5MS4xODguMjM4LjE0IiwgImlwX2NvbmZpcm1lciI6ICI5MS4xODguMjM4LjE0IiB9.ty5ExMC3fHcXsb6Dy5t4B_oYEEJpAPI1UdnvPxt9yBjifiCBNzN578UF8MP3_TWTLLb-ZsFTzxzaSUatlFZODg; webTradeEligibility=%7B%22allowed%22%3A1%2C%22allowed_at_time%22%3A0%2C%22steamguard_required_days%22%3A15%2C%22new_device_cooldown_days%22%3A0%2C%22time_checked%22%3A1680110848%7D; _gid=GA1.2.1679133265.1680110852`,
+                    cookie: ``,
                     Referer: `https://steamcommunity.com/market/listings/${appid}/${encodeURIComponent(market_hash_name)}`
                 },
                 form: {
@@ -561,12 +684,13 @@ class Steam extends Base {
                     save_my_adress: 0
                 }
             });
-            console.log(body);
+            console.log(body, statusCode);
             if (!body.wallet_info) {
                 throw new Error(body);
             }
         } catch (err) {
-            throw new Error(`Can't buy listing: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Buy listing error: ${message}`);
         }
     }
 }

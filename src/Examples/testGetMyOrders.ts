@@ -1,12 +1,12 @@
 import Steam from "../Steam.js";
-import config from "./config/config.js";
+import readConfig from "./readConfig.js";
+import cookies from "./cookies.js";
 
 const steam = new Steam();
+const savedCookies = await cookies.readCookies();
 
-steam.setCookies("steamcommunity.com", config.cookies);
+steam.setCookies("steamcommunity.com", savedCookies);
 
 const buyOrders = await steam.getMyBuyOrders();
 
 console.log(buyOrders);
-
-if (buyOrders[0]) await steam.cancelBuyOrder(buyOrders[0].id);

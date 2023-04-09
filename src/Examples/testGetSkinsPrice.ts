@@ -1,5 +1,4 @@
 import Steam from "../Steam.js";
-import config from "./config/config.js";
 
 const steam = new Steam();
 

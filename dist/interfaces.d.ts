@@ -80,3 +80,53 @@ export interface BuyOrder {
     market_hash_name: string;
     quantity: number;
 }
+export interface TradeItem {
+    appid: number;
+    contextid: string;
+    amount: number;
+    assetid: string;
+}
+export interface InventoryItem {
+    appid: number;
+    contextid: string;
+    assetid: string;
+    classid: string;
+    instanceid: string;
+    amount: number;
+    tradable: number;
+    market_hash_name: string;
+}
+export type Inventory = InventoryItem[];
+export interface RawInventory {
+    assets: {
+        appid: number;
+        contextid: string;
+        assetid: string;
+        classid: string;
+        instanceid: string;
+        amount: number;
+    }[];
+    descriptions: {
+        appid: number;
+        classid: string;
+        instanceid: string;
+        currency: number;
+        background_color: string;
+        icon_url: string;
+        icon_url_large: string;
+        descriptions: any[];
+        tradable: number;
+        actions: any[];
+        owner_descriptions: any[];
+        name: string;
+        name_color: string;
+        type: string;
+        market_name: string;
+        market_hash_name: string;
+        market_actions: any[];
+        commodity: number;
+        market_tradable_restriction: number;
+        marketable: number;
+        tags: any[];
+    }[];
+}

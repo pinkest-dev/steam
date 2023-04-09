@@ -1,8 +1,14 @@
 import Base from "request-base";
-import { AuthentificationParams, BuyOrder, ConstructorOptions, Cookie, CreateBuyOrderParams } from "./interfaces.js";
+import { AuthentificationParams, BuyOrder, ConstructorOptions, Cookie, CreateBuyOrderParams, Inventory, TradeItem } from "./interfaces.js";
 declare class Steam extends Base {
     constructor(options?: ConstructorOptions);
     private getClientJsToken;
+    getMySteamid64(): string;
+    getInventory(steamid: string, options?: {
+        proxy?: string;
+    }): Promise<Inventory>;
+    sendTrade(tradeurl: string, myItems: TradeItem[], partnerItems: TradeItem[], message?: string): Promise<void>;
+    getSteamID64fromAccountID(id: string): string;
     /**Получить статус авторизации. Проверить авторизованы ли мы сейчас в Steam? Действительны ли наши куки*/
     isAuthorized(): Promise<boolean>;
     /**Получить статус авторизации у произвольных куков*/
