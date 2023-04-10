@@ -37,8 +37,10 @@ declare class Steam extends Base {
      * а где-то придется знатно потанцевать с бубном
     */
     getServiceAuthirizationLink(link: string): Promise<any>;
-    /**(основной метод) Пройти авторизацию в Steam (получить доступ к аккаунту) */
-    authorization(params: AuthentificationParams): Promise<string[]>;
+    loginByMaFile(): Promise<void>;
+    oauthLogin(): Promise<void>;
+    /**(основной метод) Залогиниться в Steam (получить доступ к аккаунту) */
+    login(params: AuthentificationParams): Promise<string[]>;
     /**(метод аккаунта) получения баланса аккаунта (в установленной валюте)*/
     getBalance(): Promise<{
         currency: string;

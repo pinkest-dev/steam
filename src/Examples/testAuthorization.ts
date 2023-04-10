@@ -11,7 +11,7 @@ const isAuth = await Steam.CheckCookiesSession(config.accountName, savedCookies)
 
 if (!isAuth){
     console.log("Куки не действительный! Логинимся еще раз...");
-    await steam.authorization({
+    await steam.login({
         accountName: config.accountName,
         password: config.password,
         shared_secret: config.shared_secret

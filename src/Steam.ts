@@ -514,8 +514,16 @@ class Steam extends Base {
         }
     }
 
-    /**(основной метод) Пройти авторизацию в Steam (получить доступ к аккаунту) */
-    async authorization(params: AuthentificationParams) {
+    async loginByMaFile(){
+
+    }
+
+    async oauthLogin(){
+
+    }
+
+    /**(основной метод) Залогиниться в Steam (получить доступ к аккаунту) */
+    async login(params: AuthentificationParams) {
         try {
             const isLoggedIn = await this.isAuthorized();
             if (isLoggedIn) {

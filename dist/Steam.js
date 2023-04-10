@@ -482,8 +482,12 @@ class Steam extends Base {
             throw new Error(`Service authorization error: ${err}`);
         }
     }
-    /**(основной метод) Пройти авторизацию в Steam (получить доступ к аккаунту) */
-    async authorization(params) {
+    async loginByMaFile() {
+    }
+    async oauthLogin() {
+    }
+    /**(основной метод) Залогиниться в Steam (получить доступ к аккаунту) */
+    async login(params) {
         try {
             const isLoggedIn = await this.isAuthorized();
             if (isLoggedIn) {
