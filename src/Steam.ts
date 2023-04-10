@@ -3,9 +3,10 @@ import crypto from "crypto";
 //@ts-ignore
 import { hex2b64, Key } from "node-bignumber";
 import { UINT64 } from "cuint";
-import { AuthentificationParams, BuyOrder, ClientJsToken, ConstructorOptions, Cookie, CreateBuyOrderParams, DoLoginParams, Inventory, InventoryItem, RawInventory, RsaKey, TradeItem } from "./interfaces.js";
+import { AuthentificationParams, BuyOrder, ClientJsToken, Confirmation, ConstructorOptions, Cookie, CreateBuyOrderParams, DoLoginParams, Inventory, InventoryItem, RawInventory, RsaKey, TradeItem } from "./interfaces.js";
 import got from "got";
 import PopularDomens from "./Enums/PopularDomens.js";
+import cheerio from "cheerio";
 
 class Steam extends Base {
     constructor(options?: ConstructorOptions) {
@@ -29,6 +30,189 @@ class Steam extends Base {
             }
         }
         throw new Error("No Steamid in cookies");
+    }
+
+    async getConfirmations(identity_secret: string) {
+        try {
+            const time = Math.ceil(Number(new Date()) / 1000);
+
+            const { body, requestOptions } = await this.doRequest(`https://steamcommunity.com/mobileconf/conf`, {
+                headers: {
+                    'User-Agent': `Android`
+                },
+                searchParams: {
+                    p: this.getDeviceId(),
+                    a: this.getMySteamid64(),
+                    k: this.getConfirmationKey(identity_secret, time, "conf"),
+                    t: time,
+                    m: `android`,
+                    tag: `conf`,
+                }
+            },
+                {
+                    isJsonResult: false
+                }
+            );
+
+            let $ = cheerio.load(body);
+            let empty = $('#mobileconf_empty');
+            if (empty.length > 0) {
+                if (!$(empty).hasClass('mobileconf_done')) {
+                    // An error occurred
+                    throw new Error(`No content`);
+                }
+                // nothingToConfirm
+                return []
+            }
+
+            // We have something to confirm
+            let confirmations = $('#mobileconf_list');
+            if (!confirmations) {
+                throw new Error(`Malform response`);
+            }
+
+            let confs: Confirmation[] = [];
+            Array.prototype.forEach.call(confirmations.find('.mobileconf_list_entry'), (conf) => {
+                conf = $(conf);
+                let img = conf.find('.mobileconf_list_entry_icon img');
+                confs.push({
+                    id: conf.data('confid'),
+                    type: conf.data('type'),
+                    creator: conf.data('creator'),
+                    key: conf.data('key'),
+                    title: conf.find('.mobileconf_list_entry_description>div:nth-of-type(1)').text().trim(),
+                    receiving: conf.find('.mobileconf_list_entry_description>div:nth-of-type(2)').text().trim(),
+                    time: conf.find('.mobileconf_list_entry_description>div:nth-of-type(3)').text().trim(),
+                    icon: img.length < 1 ? '' : $(img).attr('src'),
+                });
+            })
+
+            return confs;
+        } catch (err) {
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Accept confirmation error: ${message}`);
+        }
+    }
+
+    /* НЕ РАБОТАЕТ! ПОЧИНИТЬ!*/
+    async acceptManyConfirmations(cid: number[], cKey: string[], identity_secret: string) {
+        try {
+            if (!this.getMySteamid64() || !identity_secret) {
+                throw new Error("Must have steamid+identity_secret before to do anything with confirmations");
+            }
+
+            let time = Math.floor(Date.now() / 1000);
+
+            const { body, requestOptions } = await this.doRequest(`https://steamcommunity.com/mobileconf/multiajaxop`, {
+                method: "POST",
+                headers: {
+                    "User-Agent": "Android",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Referer": `https://steamcommunity.com/mobileconf/multiajaxop`
+                },
+                form: {
+                    op: "allow",
+                    cid: cid,
+                    ck: cKey,
+                    p: this.getDeviceId(),
+                    a: this.getMySteamid64(),
+                    k: this.getConfirmationKey(identity_secret, time, 'allow'),
+                    t: time,
+                    m: `android`,
+                    tag: `allow`,
+                }
+            })
+            console.log(requestOptions);
+            console.log(body);
+            if (!body.success) {
+                throw new Error(`Not confirmed ${body.error}`);
+            }
+        } catch (err) {
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Accept confirmation error: ${message}`);
+        }
+    }
+
+    async acceptConfirmation(cid: number, cKey: string, identity_secret: string) {
+        try {
+            if (!this.getMySteamid64() || !identity_secret) {
+                throw new Error("Must have steamid+identity_secret before to do anything with confirmations");
+            }
+
+            let time = Math.floor(Date.now() / 1000);
+
+            const { body, requestOptions } = await this.doRequest(`https://steamcommunity.com/mobileconf/ajaxop`, {
+                headers: {
+                    "User-Agent": "Android"
+                },
+                searchParams: {
+                    op: "allow",
+                    cid: cid as any,
+                    ck: cKey as any,
+                    p: this.getDeviceId(),
+                    a: this.getMySteamid64(),
+                    k: this.getConfirmationKey(identity_secret, time, 'allow'),
+                    t: time,
+                    m: `android`,
+                    tag: `allow`,
+                }
+            })
+            if (!body.success) {
+                throw new Error(`Not confirmed ${body.error}`);
+            }
+        } catch (err) {
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Accept confirmation error: ${message}`);
+        }
+    }
+
+    getConfirmationKey(identity_secret: string, time: number, tag: string) {
+        try {
+            let data_len = 8;
+
+            if (tag)
+                if (tag.length > 32)
+                    data_len += 32;
+                else
+                    data_len += tag.length;
+
+            let buffer = Buffer.allocUnsafe(data_len);
+
+            if (buffer.writeBigUInt64BE) {
+                buffer.writeBigUInt64BE(BigInt(time), 0);
+            } else {
+                buffer.writeUInt32BE(0, 0)
+                buffer.writeUInt32BE(time, 4);
+            }
+
+            if (tag)
+                buffer.write(tag, 8);
+
+            let hmac = crypto.createHmac('sha1', this.bufferizeSecret(identity_secret));
+            return hmac.update(buffer).digest('base64');
+        } catch (err) {
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get confirmation key error: ${message}`);
+        }
+    }
+
+    getDeviceId() {
+        return (
+            'android:' +
+            crypto
+                .createHash('sha1')
+                .update(this.getMySteamid64() + ``)
+                .digest('hex')
+                .replace(/^([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12}).*$/, '$1-$2-$3-$4-$5')
+        )
+    }
+
+    cancelConfirmation() {
+        try {
+
+        } catch (err) {
+
+        }
     }
 
     async getInventory(steamid: string, appid: number, contextid: string, options?: {
@@ -112,7 +296,7 @@ class Steam extends Base {
                     trade_offer_create_params: JSON.stringify({ trade_offer_access_token: token })
                 }
             });
-            
+
             return body.tradeofferid;
         } catch (err) {
             const message = (err as any).message || "Unknown error";

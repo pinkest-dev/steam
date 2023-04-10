@@ -5,6 +5,6 @@ const steam = new Steam();
 const savedCookies = await cookies.readCookies();
 
 steam.setCookies("steamcommunity.com", savedCookies);
-const inventory = await steam.getInventory(steam.getMySteamid64());
+const inventory = await steam.getInventory(steam.getMySteamid64(), 730, "2");
 
 console.log(inventory);

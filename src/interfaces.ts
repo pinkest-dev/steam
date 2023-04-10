@@ -144,3 +144,14 @@ export interface RawInventory {
         tags: any[];
     }[]
 }
+
+export interface Confirmation {
+    id: number;
+    type: number;
+    creator: number;
+    key: string;
+    title: string;
+    receiving: string;
+    time: string;
+    icon?: string;
+}

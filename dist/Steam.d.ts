@@ -1,9 +1,15 @@
 import Base from "request-base";
-import { AuthentificationParams, BuyOrder, ConstructorOptions, Cookie, CreateBuyOrderParams, Inventory, TradeItem } from "./interfaces.js";
+import { AuthentificationParams, BuyOrder, Confirmation, ConstructorOptions, Cookie, CreateBuyOrderParams, Inventory, TradeItem } from "./interfaces.js";
 declare class Steam extends Base {
     constructor(options?: ConstructorOptions);
     private getClientJsToken;
     getMySteamid64(): string;
+    getConfirmations(identity_secret: string): Promise<Confirmation[]>;
+    acceptManyConfirmations(cid: number[], cKey: string[], identity_secret: string): Promise<void>;
+    acceptConfirmation(cid: number, cKey: string, identity_secret: string): Promise<void>;
+    getConfirmationKey(identity_secret: string, time: number, tag: string): string;
+    getDeviceId(): string;
+    cancelConfirmation(): void;
     getInventory(steamid: string, appid: number, contextid: string, options?: {
         proxy?: string;
     }): Promise<Inventory>;
