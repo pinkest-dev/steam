@@ -3,7 +3,7 @@ import crypto from "crypto";
 //@ts-ignore
 import { hex2b64, Key } from "node-bignumber";
 import { UINT64 } from "cuint";
-import { AuthentificationParams, BuyOrder, ClientJsToken, Confirmation, ConstructorOptions, Cookie, CreateBuyOrderParams, DoLoginParams, Inventory, InventoryItem, RawInventory, RsaKey, TradeItem } from "./interfaces.js";
+import { AuthentificationParams, BuyOrder, ClientJsToken, Confirmation, ConstructorOptions, Cookie, CreateBuyOrderParams, DoLoginParams, Inventory, InventoryItem, Offer, RawInventory, RsaKey, TradeItem } from "./interfaces.js";
 import got from "got";
 import PopularDomens from "./Enums/PopularDomens.js";
 import cheerio from "cheerio";
@@ -219,7 +219,12 @@ class Steam extends Base {
         proxy?: string
     }): Promise<Inventory> {
         try {
-            const { body } = await this.doRequest(`https://steamcommunity.com/inventory/${steamid}/${appid}/${contextid}`, {}, { customProxy: options?.proxy });
+            const { body } = await this.doRequest(`https://steamcommunity.com/inventory/${steamid}/${appid}/${contextid}`, {
+                timeout: {
+                    response: 10000,
+                    request: 10000
+                }
+            }, { customProxy: options?.proxy });
             if (body.success) {
                 if (body.total_inventory_count == 0) {
                     return [];
@@ -510,15 +515,55 @@ class Steam extends Base {
             const location = await this.openidLogin(link, params.nonce, params.openid);
             return location;
         } catch (err) {
-            throw new Error(`Service authorization error: ${err}`);
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Service authorization error: ${message}`);
         }
     }
 
-    async loginByMaFile(){
+    async getReceivedOffers(steamApikey: string): Promise<Offer[]> {
+        try {
+            const { body } = await this.doRequest(`https://api.steampowered.com/IEconService/GetTradeOffers/v1?key=${steamApikey}&get_received_offers=1&language=en&active_only=1`);
+
+            if (!body || !body.response || !body.response.trade_offers_received) throw new Error(`no content`);
+            return body.response.trade_offers_received;
+        } catch (err) {
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get received offers error: ${message}`);
+        }
+    }
+
+    async acceptTrade(offer: Offer): Promise<string> {
+        try {
+            const cookies = this.getCookies(PopularDomens["steamcommunity.com"]);
+            if (!cookies.sessionid) throw new Error(`Not logged in`);
+
+            const { body, requestOptions } = await this.doRequest(`https://steamcommunity.com/tradeoffer/${offer.tradeofferid}/accept`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                    Referer: `https://steamcommunity.com/tradeoffer/${offer.tradeofferid}/`
+                },
+                form: {
+                    sessionid: cookies.sessionid.value,
+                    serverid: 1,
+                    tradeofferid: +offer.tradeofferid,
+                    partner: this.getSteamID64fromAccountID(String(offer.accountid_other)),
+                    captcha: ''
+                }
+            });
+            if (body.tradeid) return body.tradeid;
+            throw new Error(body.strError);
+        } catch (err) {
+            const message = (err as any).message || "Unknown error";
+            throw new Error(`Get received offers error: ${message}`);
+        }
+    }
+
+    async loginByMaFile() {
 
     }
 
-    async oauthLogin(){
+    async oauthLogin() {
 
     }
 

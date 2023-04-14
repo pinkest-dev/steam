@@ -140,3 +140,27 @@ export interface Confirmation {
     time: string;
     icon?: string;
 }
+export interface Offer {
+    tradeofferid: string;
+    accountid_other: number;
+    message: string;
+    expiration_time: number;
+    trade_offer_state: number;
+    items_to_receive: {
+        appid: number;
+        contextid: string;
+        assetid: string;
+        classid: string;
+        instanceid: string;
+        amount: string;
+        missing: boolean;
+        est_usd: string;
+    }[];
+    is_our_offer: boolean;
+    time_created: number;
+    time_updated: number;
+    from_real_time_trade: boolean;
+    escrow_end_date: number;
+    confirmation_method: number;
+    eresult: number;
+}

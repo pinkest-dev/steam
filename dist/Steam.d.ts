@@ -1,5 +1,5 @@
 import Base from "request-base";
-import { AuthentificationParams, BuyOrder, Confirmation, ConstructorOptions, Cookie, CreateBuyOrderParams, Inventory, TradeItem } from "./interfaces.js";
+import { AuthentificationParams, BuyOrder, Confirmation, ConstructorOptions, Cookie, CreateBuyOrderParams, Inventory, Offer, TradeItem } from "./interfaces.js";
 declare class Steam extends Base {
     constructor(options?: ConstructorOptions);
     private getClientJsToken;
@@ -37,6 +37,8 @@ declare class Steam extends Base {
      * а где-то придется знатно потанцевать с бубном
     */
     getServiceAuthirizationLink(link: string): Promise<any>;
+    getReceivedOffers(steamApikey: string): Promise<Offer[]>;
+    acceptTrade(offer: Offer): Promise<string>;
     loginByMaFile(): Promise<void>;
     oauthLogin(): Promise<void>;
     /**(основной метод) Залогиниться в Steam (получить доступ к аккаунту) */
