@@ -1,5 +1,4 @@
 /node_modules
 /build
 /dist/Examples/config
-/config.json
-/config/config.json
+/config
